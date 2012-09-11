@@ -72,6 +72,8 @@ float CONF_float_to_int8_limit  = 2.0f;      // Max accuracy = val/256
 float CONF_float_to_int16_limit = 2048.0f;   // Max accuracy = val/65536
 float CONF_flat_height_delta_limit = 0.005f; // If max - min less this value - surface is flat
 float CONF_flat_liquid_delta_limit = 0.001f; // If max - min less this value - liquid surface is flat
+bool  CONF_generate_sql_files = false;		 // Generate SQL files from DBC Files
+bool  CONF_remove_dbc = false;				 // Remove DBC after SQL Generation
 
 static char* const langs[] = {"enGB", "enUS", "deDE", "esES", "frFR", "koKR", "zhCN", "zhTW", "enCN", "enTW", "esMX", "ruRU" };
 #define LANG_COUNT 12
@@ -112,6 +114,8 @@ void Usage(char* prg)
         "-e extract only MAP(1)/DBC(2) - temporary only: DBC(2)\n"
         "-f height stored as int (less map size but lost some accuracy) 1 by default\n"
         "-b extract data for specific build (at least not greater it from available). Min supported build %u.\n"
+        "-s generate SQL files from DBC\n"
+        "-r remove DBC file after SQL generation\n"
         "Example: %s -f 0 -i \"c:\\games\\game\"", prg, MIN_SUPPORTED_BUILD, prg);
     exit(1);
 }
@@ -125,6 +129,9 @@ void HandleArgs(int argc, char * arg[])
         // e - extract only MAP(1)/DBC(2) - standard both(3)
         // f - use float to int conversion
         // h - limit minimum height
+        // s - generate SQL files from DBC
+        // r - remove DBC file after SQL generation\
+
         if(arg[c][0] != '-')
             Usage(arg[0]);
 
@@ -168,6 +175,20 @@ void HandleArgs(int argc, char * arg[])
                 else
                     Usage(arg[0]);
                 break;
+	        case 's':
+	            //if(c + 1 < argc)                            // all ok
+	                CONF_generate_sql_files=true;
+	            //else
+	            //    Usage(arg[0]);
+	            break;
+
+	        case 'r':
+	            //if(c + 1 < argc)                            // all ok
+	                CONF_remove_dbc=true;
+	            //else
+	            //    Usage(arg[0]);
+	            break;
+
             default:
                 Usage(arg[0]);
                 break;
@@ -1075,9 +1096,25 @@ void ExtractDBCFiles(int locale, bool basicLocale)
         filename += (iter->c_str() + strlen("DBFilesClient\\"));
 
         if (ExtractFile(iter->c_str(), filename))
+        {
+            //Generate SQL files Here
+            if (CONF_generate_sql_files)
+            {
+				printf("Generated %s.sql\n",filename.c_str());
+			//	Reader cReader;
+			//	if (cReader.LoadBinary((char*)filename.c_str(), fileExt, recordSize))
+			//		cReader.ExtractBinaryInfo(filename.c_str());
+
+			}
+		}
             ++count;
     }
     printf("Extracted %u DBC/DB2 files\n\n", count);
+
+    ////Remove DBC file Here
+    //if (CONF_remove_dbc)
+    //{
+    //}
 }
 
 typedef std::pair<std::string /*full_filename*/, char const* /*locale_prefix*/> UpdatesPair;
