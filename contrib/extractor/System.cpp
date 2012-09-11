@@ -91,6 +91,25 @@ void CreateDir( const std::string& Path )
     #endif
 }
 
+void ExtractSQL( const char* FileName )
+{
+    std::string filename2  = std::string(FileName)+".sql";
+
+    printf("Generated %s\n",filename2);
+    FILE *output=fopen(filename2.c_str(), "w");
+    if(!output)
+    {
+       fprintf(output,"test");
+    }
+    fclose(output);
+    
+                
+                //	Reader cReader;
+			//	if (cReader.LoadBinary((char*)filename.c_str(), fileExt, recordSize))
+			//		cReader.ExtractBinaryInfo(filename.c_str());
+
+}
+
 bool FileExists( const char* FileName )
 {
     int fp = _open(FileName, OPEN_FLAGS);
@@ -1100,11 +1119,7 @@ void ExtractDBCFiles(int locale, bool basicLocale)
             //Generate SQL files Here
             if (CONF_generate_sql_files)
             {
-				printf("Generated %s.sql\n",filename.c_str());
-			//	Reader cReader;
-			//	if (cReader.LoadBinary((char*)filename.c_str(), fileExt, recordSize))
-			//		cReader.ExtractBinaryInfo(filename.c_str());
-
+                ExtractSQL(filename.c_str());
 			}
 		}
             ++count;
