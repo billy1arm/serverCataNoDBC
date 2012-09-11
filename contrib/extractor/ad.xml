@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<Files> 
+ <Item>
+    <include>N</include>
+    <tablename>tblItem</tablename>
+    <field type="uint" name="id" />
+    <field type="uint" name="class" />
+    <field type="uint" name="subclass" />
+    <field type="int" name="unk0" />
+    <field type="int" name="material" />
+    <field type="uint" name="displayid" />
+    <field type="uint" name="inventorytype" />
+    <field type="uint" name="sheath" />
+  </Item>
+
+  <ItemDisplayInfo>
+    <tablename>tblItemDisplayInfo</tablename>
+    <include>Y</include>
+    <index>
+      <primary>id</primary>
+    </index>
+    <field type="int" name="id" />
+    <field type="string" name="icon" />
+  </ItemDisplayInfo>
+ </Files>
