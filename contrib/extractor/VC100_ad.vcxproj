@@ -158,7 +158,9 @@
     <ClInclude Include="loadlib\wdt.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="ad.xml" />
+    <None Include="ad.xml">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

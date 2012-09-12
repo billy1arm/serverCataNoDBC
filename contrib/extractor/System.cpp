@@ -88,6 +88,8 @@ static char* const langs[] = {"enGB", "enUS", "deDE", "esES", "frFR", "koKR", "z
 #define EXPANSION_COUNT 3
 #define WORLD_COUNT 2
 
+
+
 void CreateDir( const std::string& Path )
 {
 	#ifdef WIN32
@@ -96,6 +98,162 @@ void CreateDir( const std::string& Path )
 	mkdir( Path.c_str(), 0777 );
 	#endif
 }
+
+void replaceAll(std::string& str, const std::string& from, const std::string& to) { 
+    if(from.empty()) 
+        return; 
+    size_t start_pos = 0; 
+    while((start_pos = str.find(from, start_pos)) != std::string::npos) { 
+        str.replace(start_pos, from.length(), to); 
+        start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx' 
+    } 
+} 
+
+string CleanFilename(string Filename)
+{
+    string outFilename = Filename;
+    replaceAll(outFilename,".dbc",""); 
+    replaceAll(outFilename,"./dbc/",""); 
+
+    return outFilename;
+}
+
+void WriteSqlStructure(ofstream& fileRef,string& filename)
+{
+    // Generate the SQL Header Section
+    fileRef << "DROP TABLE IF EXISTS `dbc_" + filename + "`;" << endl;
+    fileRef << "CREATE TABLE `dbc_"+ filename +"` (";
+
+    // Generate the SQL for the Fields
+    int maxColumns = 20; //data.Columns.Count
+
+    //for (int i = 0; i < maxColumns; ++i)
+    //{
+    //    fileRef << "\t`" + data.Columns[i].ColumnName + "`" ;
+
+    //    switch (data.Columns[i].DataType.Name)
+    //    {
+    //        case "Int64":
+    //            sqlWriter.Write(" BIGINT NOT NULL DEFAULT '0'");
+    //            break;
+    //        case "UInt64":
+    //            sqlWriter.Write(" BIGINT UNSIGNED NOT NULL DEFAULT '0'");
+    //            break;
+    //        case "Int32":
+    //            sqlWriter.Write(" INT NOT NULL DEFAULT '0'");
+    //            break;
+    //        case "UInt32":
+    //            sqlWriter.Write(" INT UNSIGNED NOT NULL DEFAULT '0'");
+    //            break;
+    //        case "Int16":
+    //            sqlWriter.Write(" SMALLINT NOT NULL DEFAULT '0'");
+    //            break;
+    //        case "UInt16":
+    //            sqlWriter.Write(" SMALLINT UNSIGNED NOT NULL DEFAULT '0'");
+    //            break;
+    //        case "SByte":
+    //            sqlWriter.Write(" TINYINT NOT NULL DEFAULT '0'");
+    //            break;
+    //        case "Byte":
+    //            sqlWriter.Write(" TINYINT UNSIGNED NOT NULL DEFAULT '0'");
+    //            break;
+    //        case "Single":
+    //            sqlWriter.Write(" FLOAT NOT NULL DEFAULT '0'");
+    //            break;
+    //        case "Double":
+    //            sqlWriter.Write(" DOUBLE NOT NULL DEFAULT '0'");
+    //            break;
+    //        case "String":
+    //            sqlWriter.Write(" TEXT NOT NULL");
+    //            break;
+    //        default:
+    //            throw new Exception(String.Format("Unknown field type {0}!", data.Columns[i].DataType.Name));
+    //    }
+
+    //    sqlWriter.WriteLine(",");
+    //}
+
+    //foreach (DataColumn index in data.PrimaryKey)
+    //{
+    //    sqlWriter.WriteLine("\tPRIMARY KEY (`{0}`)", index.ColumnName);
+    //}
+
+
+    // Close off the final part of the header section
+    fileRef << ") ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Export of " + filename + "';" << endl;
+
+}
+
+static string StripBadCharacters(string input)
+{
+    replaceAll(input,"'","\'"); 
+    replaceAll(input,"""","\""""); 
+
+    return input;
+}
+
+void WriteSqlData(ofstream& fileRef,string& filename)
+{
+    //foreach (DataRow row in data.Rows)
+    {
+    //    StringBuilder result = new StringBuilder();
+        fileRef << "INSERT INTO `dbc_" + filename + "` VALUES (";
+
+        int flds = 0;
+        int maxColumns = 20;//data.Columns.Count
+
+        for (int i = 0; i < maxColumns; ++i)
+        {
+    //        switch (data.Columns[i].DataType.Name)
+    //        {
+    //            case "Int64":
+    //                fileRef << row[i];
+    //                break;
+    //            case "UInt64":
+    //                fileRef << row[i];
+    //                break;
+    //            case "Int32":
+    //                fileRef << row[i];
+    //                break;
+    //            case "UInt32":
+    //                fileRef << row[i];
+    //                break;
+    //            case "Int16":
+    //                fileRef << row[i];
+    //                break;
+    //            case "UInt16":
+    //                fileRef << row[i];
+    //                break;
+    //            case "SByte":
+    //                fileRef << row[i];
+    //                break;
+    //            case "Byte":
+    //                fileRef << row[i];
+    //                break;
+    //            case "Single":
+    //                fileRef << ((float)row[i]).ToString(CultureInfo.InvariantCulture);
+    //                break;
+    //            case "Double":
+    //                fileRef << ((double)row[i]).ToString(CultureInfo.InvariantCulture);
+    //                break;
+    //            case "String":
+    //                fileRef << "\"" + StripBadCharacters((string)row[i]) + "\"";
+    //                break;
+    //            default:
+    //                throw new Exception(String.Format("Unknown field type {0}!", data.Columns[i].DataType.Name));
+    //        }
+
+            if (flds != maxColumns - 1)
+                fileRef << ", ";
+
+            flds++;
+        }
+
+        fileRef << ");";
+        fileRef << endl;
+    }
+}
+
 
 void ExtractSQL( const char* FileName )
 {
@@ -110,27 +268,15 @@ void ExtractSQL( const char* FileName )
 		// Read DBC File data into memory
 		//	Reader cReader;
 		//	if (cReader.LoadBinary((char*)filename.c_str(), fileExt, recordSize))
-		outfile << "Test" << std::endl;
-
 		
 		//Build the SQL File Header
-		WriteSqlStructure(outfile);
+		WriteSqlStructure(outfile,CleanFilename(string(FileName)));
 
 		//Build the SQL File Body Data
-		WriteSqlData(outfile);
+		WriteSqlData(outfile,CleanFilename(string(FileName)));
 	}
 	outfile.close();
 	printf("Generated %s\n",filename2);
-}
-
-void WriteSqlStructure(ofstream outfile)
-{
-	outfile << "Header" << endl;
-}
-
-void WriteSqlData(ofstream outfile)
-{
-	outfile << "Body" << endl;
 }
 
 bool FileExists( const char* FileName )
