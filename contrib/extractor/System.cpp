@@ -1184,6 +1184,10 @@ void Reader::WriteSqlData(ofstream& fileRef,string& filename)
     }
 }
 
+inline const char * const BoolToString(bool b) 
+{ 
+  return b ? "true" : "false"; 
+} 
 
 void ExtractSQL( const char* FileName )
 {
@@ -1197,6 +1201,10 @@ void ExtractSQL( const char* FileName )
     sFileStructure.recordSize = recordSize;
 
     Reader cReader;
+    printf ("Debug: %s \n",BoolToString(CONF_generate_sql_files));
+    printf ("Debug: %s \n",BoolToString(CONF_generate_csv_files));
+
+
     if (CONF_generate_csv_files || CONF_generate_csv_files)
     {
         printf ("Generating: ");
@@ -2211,6 +2219,7 @@ void ExtractMapsFromMpq(uint32 build, const int locale)
 	delete [] map_ids;
 }
 
+
 void ExtractDBCFiles(int locale, bool basicLocale)
 {
 	printf("Extracting dbc files...\n");
@@ -2254,8 +2263,6 @@ void ExtractDBCFiles(int locale, bool basicLocale)
 		{
             printf ("Extracted %s ",filename.c_str());
             //Generate SQL / CSV files Here
-			printf ("Debug: %s %s",CONF_generate_sql_files,CONF_generate_csv_files);
-
             if (CONF_generate_sql_files || CONF_generate_csv_files)
 			{
 				ExtractSQL(filename.c_str());
