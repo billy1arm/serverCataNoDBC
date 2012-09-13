@@ -23,6 +23,15 @@
 #include <iostream>
 #include <stdio.h> 
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <conio.h>
+#include <sstream>
+#include <vector>
+#include <map>
+#include <fstream>
+
 
 #if defined( __GNUC__ )
 	#define _open   open
@@ -79,14 +88,878 @@ float CONF_float_to_int16_limit = 2048.0f;   // Max accuracy = val/65536
 float CONF_flat_height_delta_limit = 0.005f; // If max - min less this value - surface is flat
 float CONF_flat_liquid_delta_limit = 0.001f; // If max - min less this value - liquid surface is flat
 bool  CONF_generate_sql_files = false;		 // Generate SQL files from DBC Files
+bool  CONF_generate_csv_files = false;		 // Generate CSV files from DBC Files
 bool  CONF_remove_dbc = false;				 // Remove DBC after SQL Generation
 
 static char* const langs[] = {"enGB", "enUS", "deDE", "esES", "frFR", "koKR", "zhCN", "zhTW", "enCN", "enTW", "esMX", "ruRU" };
 #define LANG_COUNT 12
 
 #define MIN_SUPPORTED_BUILD 15050                           // code expect mpq files and mpq content files structure for this build or later
-#define EXPANSION_COUNT 3
+#define EXPANSION_COUNT 4
 #define WORLD_COUNT 2
+
+class Reader
+{
+    public:
+        Reader();
+        ~Reader();
+        bool LoadBinary(char *, string, int);
+        bool LoadWDB(char *, string, unsigned char *, int);
+        bool LoadADB_DBC_DB2(char *, string, unsigned char *, int);
+        bool LoadADB_DBC_DB2_predicted(char *, unsigned char *);
+        void ExtractBinaryInfo(string fileName);
+        void WriteSqlStructure(ofstream& fileRef,string& filename);
+        void WriteSqlData(ofstream& fileRef,string& filename);
+        template<typename T> string ToStr(T);
+        void InitializeBoolFielTypes(int);
+    private:
+        int totalRecords, totalFields, recordSize, stringSize;
+        vector<vector<unsigned char *>> recordData;
+        unsigned char *stringData;
+        bool *isStringField, *isFloatField, *isIntField, *isByteField, *isBoolField;
+        bool isADB, isDB2, isDBC, isWDB, isWDBItem;
+};
+
+Reader::Reader()
+{
+    totalFields = 0;
+    totalRecords = 0;
+    recordSize = 0;
+    stringSize = 0;
+
+    recordData.clear();
+
+    stringData = 0;
+
+    isStringField = 0;
+    isFloatField = 0;
+    isIntField = 0;
+    isByteField = 0;
+    isBoolField = 0;
+    
+    isADB = false;
+    isDB2 = false;
+    isDBC = false;
+    isWDB = false;
+
+    isWDBItem = false;
+}
+
+Reader::~Reader()
+{
+    totalFields = 0;
+    totalRecords = 0;
+    recordSize = 0;
+    stringSize = 0;
+
+    recordData.clear();
+
+    if (stringData)
+        delete[] stringData;
+
+    if (isStringField)
+        delete[] isStringField;
+
+    if (isFloatField)
+        delete[] isFloatField;
+
+    if (isIntField)
+        delete[] isIntField;
+
+    if (isByteField)
+        delete[] isByteField;
+
+    if (isBoolField)
+        delete[] isBoolField;
+
+    isADB = false;
+    isDB2 = false;
+    isDBC = false;
+    isWDB = false;
+
+    isWDBItem = false;
+}
+
+void Reader::InitializeBoolFielTypes(int _fields)
+{
+    isStringField = new bool[_fields];
+    isFloatField = new bool[_fields];
+    isIntField = new bool[_fields];
+    isByteField = new bool[_fields];
+    isBoolField = new bool[_fields];
+
+    for (int currentField = 0; currentField < _fields; currentField++)
+    {
+        isStringField[currentField] = false;
+        isFloatField[currentField] = false;
+        isIntField[currentField] = false;
+        isByteField[currentField] = false;
+        isBoolField[currentField] = false;
+    }
+}
+
+template<typename T> string Reader::ToStr(T i)
+{
+    ostringstream buffer;
+
+    buffer << i;
+
+    return buffer.str();
+}
+
+bool Reader::LoadBinary(char *fileName, string fileFormat, int _recordSize)
+{
+    FILE *input = fopen(fileName, "rb");
+    if(!input)
+    {
+        printf("ERROR: Can't open file '%s'.\n", fileName);
+        return false;
+    }
+
+//    printf("Loading file: '%s'.\n", fileName);
+    printf("Loading file '%s' ", fileName);
+//    cout << "Loading file '" << fileName << "' ";
+
+    fseek(input, 0, SEEK_END);
+    long fileSize = ftell(input);
+
+    if (fileSize < 4)
+    {
+        printf("ERROR: '%s': File size too small.\n", fileName);
+        fclose(input);
+        return false;
+    }
+
+    rewind(input);
+
+    char headerName[4];
+    fread(&headerName, 4, 1, input);
+
+    if (headerName[0] == 'W' && headerName[1] == 'C' && headerName[2] == 'H' && headerName[3] == '2')
+        isADB = true;
+    else if (headerName[0] == 'W' && headerName[1] == 'D' && headerName[2] == 'B' && headerName[3] == '2')
+        isDB2 = true;
+    else if (headerName[0] == 'W' && headerName[1] == 'D' && headerName[2] == 'B' && headerName[3] == 'C')
+        isDBC = true;
+    else if (headerName[0] == 'B' && headerName[1] == 'D' && headerName[2] == 'I' && headerName[3] == 'W')        // BDIW itemcache.wdb
+    {
+        isWDBItem = true;
+        isWDB = true;
+    }
+    else if ((headerName[0] == 'B' && headerName[1] == 'O' && headerName[2] == 'M' && headerName[3] == 'W') ||    // BOMW creaturecache.wdb
+             (headerName[0] == 'B' && headerName[1] == 'O' && headerName[2] == 'G' && headerName[3] == 'W') ||    // BOGW gameobjectcache.wdb
+             (headerName[0] == 'B' && headerName[1] == 'D' && headerName[2] == 'N' && headerName[3] == 'W') ||    // BDNW itemnamecache.wdb
+             (headerName[0] == 'X' && headerName[1] == 'T' && headerName[2] == 'I' && headerName[3] == 'W') ||    // XTIW itemtextcache.wdb
+             (headerName[0] == 'C' && headerName[1] == 'P' && headerName[2] == 'N' && headerName[3] == 'W') ||    // CPNW npccache.wdb
+             (headerName[0] == 'X' && headerName[1] == 'T' && headerName[2] == 'P' && headerName[3] == 'W') ||    // XTPW pagetextcache.wdb
+             (headerName[0] == 'T' && headerName[1] == 'S' && headerName[2] == 'Q' && headerName[3] == 'W')       // TSQW questcache.wdb
+            )
+        isWDB = true;
+    else
+    {
+        printf("ERROR: '%s': Unknown file type.\n", fileName);
+        fclose(input);
+        return false;
+    }
+
+    // WDB Parse
+    if (isWDB)
+    {
+        // 24 bytes del header + 8 bytes del primer record y su el tamaño del record
+        if (fileSize < 32)
+        {
+            printf("ERROR: '%s': WDB structure is damaged.\n", fileName);
+            fclose(input);
+            return false;
+        }
+
+        // char Header[4];    // actualmente ya esta leido arriba para comprobar el tipo de archivo
+        int WDBRevision = 0;
+        char WDBLocale[4];
+        int WDBMaxRecordSize = 0;
+        int unk1 = 0;
+        int unk2 = 0;
+        // WDBEntry
+        // WDBRecordSize
+
+        fread(&WDBRevision, 4, 1, input);
+        fread(&WDBLocale, 4, 1, input);
+        fread(&WDBMaxRecordSize, 4, 1, input);
+        fread(&unk1, 4, 1, input);
+        fread(&unk2, 4, 1, input);
+
+        string _tempWDBLocale = ToStr(WDBLocale[3]) + ToStr(WDBLocale[2]) + ToStr(WDBLocale[1]) + ToStr(WDBLocale[0]);
+
+        long WDBDataSize = fileSize - 24;
+        unsigned char *WDBData = new unsigned char[WDBDataSize];
+        fread(WDBData, WDBDataSize, 1, input);
+        fclose(input);
+        
+        if (LoadWDB(fileName, fileFormat, WDBData, WDBDataSize))
+            printf("WDB file loaded: '%s' (Revision: %i, Locale: %s)\n", fileName, WDBRevision, _tempWDBLocale.c_str());
+        else
+            return false;
+    }
+    else if (isDBC || isADB || isDB2)
+    {
+        if (fileSize < 20)
+        {
+            printf("ERROR: '%s': Unknown file format.\n", fileName);
+            fclose(input);
+            return false;
+        }
+        
+        fread(&totalRecords, 4, 1, input);
+        fread(&totalFields, 4, 1, input);
+        fread(&recordSize, 4, 1, input);
+        fread(&stringSize, 4, 1, input);
+    
+        if (!totalRecords || !totalFields || !recordSize)
+        {
+            printf("ERROR: '%s': No records/fields found in file.\n", fileName);
+            fclose(input);
+            return false;
+        }
+        
+        int headerSize = 20;
+        long unkBytes = fileSize - headerSize - (totalRecords * recordSize) - stringSize;
+        long dataBytes = fileSize - headerSize - unkBytes - stringSize;
+        long stringBytes = fileSize - headerSize - unkBytes - (totalRecords * recordSize);
+        if ((totalRecords < 0) || (totalFields < 0) || (stringSize < 0) ||
+            (dataBytes < 0) || (stringBytes < 0) || 
+            (dataBytes != (totalRecords * recordSize)) || (stringBytes != stringSize))
+        {
+            printf("ERROR: '%s': Structure is damaged.\n", fileName);
+            fclose(input);
+            return false;
+        }
+
+        if (unkBytes)
+        {
+            unsigned char *unkData = new unsigned char[unkBytes];
+            fread(unkData, unkBytes, 1, input);
+        }
+
+        unsigned char *dataData = new unsigned char[dataBytes];
+        fread(dataData, dataBytes, 1, input);
+
+        if (stringBytes > 1)
+        {
+            stringData = new unsigned char[stringSize];
+            fread(stringData, stringSize, 1, input);
+        }
+
+        fclose(input);
+
+        char *_tempFileType = "";
+        if (isDBC)
+            _tempFileType = "DBC";
+        else if (isADB)
+            _tempFileType = "ADB";
+        else
+            _tempFileType = "DB2";
+
+        if (fileFormat.size())
+        {
+            if (LoadADB_DBC_DB2(fileName, fileFormat, dataData, _recordSize))
+//                printf("%s file loaded: '%s'.\n", _tempFileType, fileName);
+                cout << _tempFileType << " file '" << fileName << " loaded: ";
+            else
+                return false;
+        }
+        // Predicted
+        else
+        {
+            if (!LoadADB_DBC_DB2_predicted(fileName, dataData))
+//                printf("Predicted: %s file loaded: '%s'.\n", _tempFileType, fileName);
+//            else
+                return false;
+        }
+    }
+
+    // por si las dudas
+    if (input)
+        fclose(input);
+
+    return true;
+}
+
+bool Reader::LoadADB_DBC_DB2_predicted(char *fileName, unsigned char *data)
+{
+    if (recordSize/totalFields != 4)
+    {
+        if (recordSize % 4 != 0)
+        {
+            printf("ERROR: '%s': Predicted: Not supported byte packed format.\n", fileName);
+            return false;
+        }
+        totalFields = recordSize / 4;
+    }
+
+    // Esta funcion es necesaria, de lo contrario ocasionara crash
+    InitializeBoolFielTypes(totalFields);
+
+    int offset = 0;    // contador global usado para saber en que posicion debe leer el siguiente registro
+
+    for (int currentRecord = 0; currentRecord < totalRecords; currentRecord++)
+    {
+        vector<unsigned char *> fieldData;
+        for (int currentField = 0; currentField < totalFields; currentField++)
+        {
+            int fieldSize = 4;
+
+            fieldData.push_back(data + offset);
+            offset += fieldSize;
+        }
+        recordData.push_back(fieldData);
+    }
+
+    // Float Field System
+    for (int currentField = 0; currentField < totalFields; currentField++)
+    {
+        int counterfloat = 0, counterint = 0;
+
+        for (int currentRecord = 0; currentRecord < totalRecords; currentRecord++)
+        {
+            int value = *reinterpret_cast<int *>(recordData[currentRecord][currentField]);
+            if (value)
+            {
+                float floatValue = *reinterpret_cast<float *>(recordData[currentRecord][currentField]);
+                string floatString = ToStr(floatValue);
+                int isFloat1 = floatString.find("e");
+                int isFloat2 = floatString.find("#");
+                if ((isFloat1 == -1) && (isFloat2 == -1))
+                    counterfloat++;
+                else
+                    counterint++;
+            }
+        }
+
+        if (counterfloat > counterint)
+            isFloatField[currentField] = true;
+        else
+            isFloatField[currentField] = false;
+    }
+
+    // Bool Field System
+    if (totalRecords > 3)
+    {
+        for (int currentField = 0; currentField < totalFields; currentField++)
+        {
+            if (!isFloatField[currentField])
+            {
+                bool isBool = true;
+
+                for (int currentRecord = 0; currentRecord < totalRecords; currentRecord++)
+                {
+                    int value = *reinterpret_cast<int *>(recordData[currentRecord][currentField]);
+                    if (value < 0 || value > 1)
+                    {
+                        isBool = false;
+                        break;
+                    }
+                }
+
+                if (isBool)
+                    isBoolField[currentField] = true;
+            }
+        }
+    }
+
+    // String Field System
+    if (stringSize > 1)
+    {
+        for (int currentField = 0; currentField < totalFields; currentField++)
+        {
+            if (!isFloatField[currentField] && !isBoolField[currentField])
+            {
+                for (int currentRecord = 0; currentRecord < totalRecords; currentRecord++)
+                {
+                    int value = *reinterpret_cast<int *>(recordData[currentRecord][currentField]);
+                    if ((value < 0) || (value >= stringSize))
+                    {
+                        isStringField[currentField] = false;
+                        break;
+                    }
+                    else if ((value > 0) && (stringData[value-1]))
+                    {
+                        isStringField[currentField] = false;
+                        break;
+                    }
+                    else if ((value > 0) && !stringData[value-1])
+                        isStringField[currentField] = true;
+                }
+            }
+        }
+    }
+
+    // Int Field System
+    for (int currentField = 0; currentField < totalFields; currentField++)
+        if (!isFloatField[currentField] && !isStringField[currentField] && !isBoolField[currentField])
+            isIntField[currentField] = true;
+
+    // Byte Field false siempre para predicted
+    for (int currentField = 0; currentField < totalFields; currentField++)
+        isByteField[currentField] = false;
+
+    return true;
+}
+
+bool Reader::LoadADB_DBC_DB2(char *fileName, string fileFormat, unsigned char *data, int _recordSize)
+{
+    if (fileFormat.size() != totalFields)
+    {
+        printf("ERROR: '%s': Incorrect field format size. Expected '%i' not '%i' fields.\n", fileName, totalFields, fileFormat.size());
+        return false;
+    }
+
+    if (_recordSize != recordSize)
+    {
+        printf("ERROR: '%s': Incorrect field format structure, Expected '%i' not %i bytes per record.\n", fileName, recordSize, _recordSize);
+        return false;
+    }
+
+    // Esta funcion es necesaria, de lo contrario ocasionara crash
+    InitializeBoolFielTypes(totalFields);
+
+    // iniciando el tipo de dato
+    for (int currentField = 0; currentField < totalFields; currentField++)
+    {
+        switch (fileFormat[currentField])
+        {
+            case 'b':    // byte
+            case 'X':    // unk byte
+                isByteField[currentField] = true;
+                break;
+            case 's':    // string
+                isStringField[currentField] = true;
+                break;
+            case 'd':    // int
+            case 'n':    // int
+            case 'x':    // unk int
+            case 'i':    // int
+                isIntField[currentField] = true;
+                break;
+            case 'f':    // float
+                isFloatField[currentField] = true;
+                break;
+        }
+    }
+
+    int offset = 0;    // contador global usado para saber en que posicion debe leer el siguiente registro
+
+    for (int currentRecord = 0; currentRecord < totalRecords; currentRecord++)
+    {
+        vector<unsigned char *> fieldData;
+        for (int currentField = 0; currentField < totalFields; currentField++)
+        {
+            int fieldSize = 0;
+
+            if (isByteField[currentField])
+                fieldSize = 1;
+            else
+                fieldSize = 4;
+
+            fieldData.push_back(data + offset);
+            offset += fieldSize;
+        }
+        recordData.push_back(fieldData);
+    }
+
+    return true;
+}
+
+bool Reader::LoadWDB(char *fileName, string format, unsigned char *data, int dataSize)
+{
+    // Declaraciones globales en clase, pero totalFields y totalRecords no son definitivas
+    // hasta que el final de la funcion
+    totalFields = format.size();    // aun le faltan 2, pero eso se hace hasta abajo de esta funcion
+    totalRecords = 0;
+    stringSize = 0;
+
+    // Esta funcion es necesaria, de lo contrario ocasionara crash
+    InitializeBoolFielTypes(totalFields + 1);
+
+    long orignaldataSize = dataSize + 24;
+
+    bool isFirstRecord = true;
+    int offset = 0;    // contador global usado para saber en que posicion debe leer el siguiente registro
+
+    // repetir desde aqui
+    while (true)
+    {
+        int entry = 0;
+        int recordSize = 0;
+
+        if ((dataSize -= 8) >= 0)
+        {
+            entry = *reinterpret_cast<int *>(data + offset);
+            offset += 4;
+            recordSize = *reinterpret_cast<int *>(data + offset);
+            offset += 4;
+
+            if (isFirstRecord && (!entry || !recordSize))
+            {
+                printf("ERROR: '%s': No records found.\n", fileName);
+                return false;
+            }
+            else if (!isFirstRecord && (!entry || !recordSize))
+                break;
+
+            isFirstRecord = false;
+
+            if ((dataSize -= recordSize) >= 0)
+            {
+                vector<unsigned char *> fieldData;
+
+                // entry, se le restan 8 al offset, debido a que ya se le sumaron 8
+                fieldData.push_back(data + (offset - 8));
+                isIntField[0] = true;
+                // StatsCount caso especial para itemcache.wdb
+                bool CountItemStats = false;
+                bool isCompletedStats = true;
+                bool neverRepeat = true;
+                int StatsCount = 0;
+                int StatsRemaining = 20;
+
+                for (int currentField = 0; currentField < totalFields; currentField++)
+                {
+                    if (CountItemStats && neverRepeat)
+                    {
+                        if (!StatsRemaining)
+                        {
+                            isCompletedStats = true;
+                            neverRepeat = false;
+                        }
+                        else
+                        {
+                            isCompletedStats = false;
+                            if (StatsCount)
+                            {
+                                isIntField[currentField + 1] = true;
+                                fieldData.push_back(data + offset);
+                                offset += 4;
+                                recordSize -= 4;
+                                StatsCount -= 1;
+                                StatsRemaining -= 1;
+                            }
+                            else
+                            {
+                                isIntField[currentField + 1] = true;
+                                unsigned char *_tempiii = new unsigned char[sizeof(int)];
+                                _tempiii[0] = 0;
+                                _tempiii[1] = 0;
+                                _tempiii[2] = 0;
+                                _tempiii[3] = 0;
+                                fieldData.push_back(_tempiii);
+                                StatsRemaining -= 1;
+                            }
+                        }
+                    }
+
+                    if (isCompletedStats)
+                    {
+                        switch(format[currentField])
+                        {
+                            case 'b':    // byte
+                            case 'X':    // unk byte
+                                //printf("%c, %i\n", format[currentField], *reinterpret_cast<char *>(data + offset));
+                                isByteField[currentField + 1] = true;
+                                fieldData.push_back(data + offset);
+                                offset += 1;
+                                recordSize -= 1;
+                                break;
+                            case 's':
+                            {
+                                string _tempString = reinterpret_cast<char *>(data + offset);
+                                //printf("%c, %s\n", format[currentField], _tempString.c_str());
+                                isStringField[currentField + 1] = true;
+                                fieldData.push_back(data + offset);
+                                offset += _tempString.size() + 1;
+                                recordSize -= _tempString.size() + 1;
+                                break;
+                            }
+                            case 'd':    // int
+                            case 'n':    // int
+                            case 'x':    // unk int
+                            case 'i':    // int
+                                //printf("%c, %i\n", format[currentField], *reinterpret_cast<int *>(data + offset));
+                                isIntField[currentField + 1] = true;
+                                if (isWDBItem && (format[currentField] == 'x') && !CountItemStats)
+                                {
+                                    StatsCount = *reinterpret_cast<int *>(data + offset);
+                                    StatsCount *= 2;
+                                    CountItemStats = true;
+                                }
+                                fieldData.push_back(data + offset);
+                                offset += 4;
+                                recordSize -= 4;
+                                break;
+                            case 'f':    // float
+                                //printf("%c, %f\n", format[currentField], *reinterpret_cast<float *>(data + offset));
+                                isFloatField[currentField + 1] = true;
+                                fieldData.push_back(data + offset);
+                                offset += 4;
+                                recordSize -= 4;
+                                break;
+                        } // switch(format[currentField])
+                    } // if (isCompletedStats)
+
+                    if ((recordSize > 0) && ((currentField + 1) >= totalFields))
+                    {
+                        printf("ERROR: '%s': You must read '%i' bytes more per record.\n", fileName, recordSize);
+                        return false;
+                    }
+                    else if ((recordSize < 0) && ((currentField + 1) >= totalFields))
+                    {
+                        printf("ERROR: '%s': Exceeded record size by '%i' bytes.\n", fileName, recordSize * -1);
+                        return false;
+                    }
+                } // for (unsigned int currentField = 0; currentField < totalFields; currentField++)
+
+                recordData.push_back(fieldData);
+            } // if ((dataSize -= recordSize) >= 0)
+            else
+            {
+                printf("ERROR: '%s': Corrupted WDB file.\n", fileName);
+                return false;
+            }
+        } // if ((dataSize -= 8) >= 0)
+        else
+        {
+            printf("ERROR: '%s': Unexpected End of file in WDB, expected file size '%li'.\n", fileName, orignaldataSize-dataSize);
+            return false;
+        }
+    } // while (true)
+
+    // Del total de fields de formato solo se agrega uno mas que es el entry
+    totalFields += 1;
+    totalRecords = recordData.size();
+
+    return true;
+}
+
+void Reader::ExtractBinaryInfo(string fileName)
+{
+    string outputFileName = fileName + ".csv";
+    FILE *output = fopen(outputFileName.c_str(), "w");
+    if(!output)
+    {
+        printf("ERROR: File cannot be created '%s'.\n", outputFileName.c_str());
+        return;
+    }
+
+    for (int currentField = 0; currentField < totalFields; currentField++)
+    {
+        if (isStringField[currentField])
+            fprintf(output, "string");
+        else if (isFloatField[currentField])
+            fprintf(output, "float");
+        else if (isByteField[currentField])
+            fprintf(output, "byte");
+        else if (isIntField[currentField] || isBoolField[currentField])
+            fprintf(output, "int");
+
+        if (currentField+1 < totalFields)
+            fprintf(output, ",");
+    }
+    fprintf(output, "\n");
+
+    for (int currentRecord = 0; currentRecord < totalRecords; currentRecord++)
+    {
+        for (int currentField = 0; currentField < totalFields; currentField++)
+        {
+            if (!isWDB && (stringSize > 1) && isStringField[currentField])
+            {
+                int value = *reinterpret_cast<int *>(recordData[currentRecord][currentField]);
+                if (value)
+                {
+                    string outText = "\"";
+                    for (int x = value; x < stringSize; x++)
+                    {
+                        if (!stringData[x])
+                            break;
+
+                        if (stringData[x] == '"')
+                            outText.append("\"");
+
+                        if (stringData[x] == '\r')
+                        {
+                            outText.append("\\r");
+                            continue;
+                        }
+
+                        if (stringData[x] == '\n')
+                        {
+                            outText.append("\\n");
+                            continue;
+                        }
+
+                        outText.append(ToStr(stringData[x]));
+                    }
+                    outText.append("\"");
+                    fprintf(output, "%s", outText.c_str());
+                }
+            }
+            else if (isWDB && isStringField[currentField])
+            {
+                string _tempText = reinterpret_cast<char *>(recordData[currentRecord][currentField]);
+                int value = _tempText.size();
+                if (value)
+                {
+                    string outText = "\"";
+                    for (int x = 0; x < value; x++)
+                    {
+                        if (!_tempText[x])
+                            break;
+
+                        if (_tempText[x] == '"')
+                            outText.append("\"");
+
+                        if (_tempText[x] == '\r')
+                        {
+                            outText.append("\\r");
+                            continue;
+                        }
+
+                        if (_tempText[x] == '\n')
+                        {
+                            outText.append("\\n");
+                            continue;
+                        }
+
+                        outText.append(ToStr(_tempText[x]));
+                    }
+                    outText.append("\"");
+                    fprintf(output, "%s", outText.c_str());
+                }
+            }
+            else if (isFloatField[currentField])
+                fprintf(output, "%f", *reinterpret_cast<float *>(recordData[currentRecord][currentField]));
+            else if (isByteField[currentField])
+                fprintf(output, "%d", *reinterpret_cast<char *>(recordData[currentRecord][currentField]));
+            else if (isIntField[currentField] || isBoolField[currentField])
+                fprintf(output, "%i", *reinterpret_cast<int *>(recordData[currentRecord][currentField]));
+
+            if (currentField+1 < totalFields)
+                fprintf(output, ",");
+        }
+        fprintf(output, "\n");
+    }
+
+    fclose(output);
+
+    printf("CSV file created: '%s'.\n", outputFileName.c_str());
+}
+
+struct FileStructure
+{
+    string Structure;
+    int recordSize;
+};
+
+map<string, FileStructure> mFileNames, mTempFileNames;
+bool isConfig = true;
+
+void AddFileStructureToList()
+{
+    char *filename = "WoWParserReader.cfg";
+    ifstream input(filename, ifstream::in);
+    if (!input.is_open())
+    {
+        printf("Warning: Can't open configuration file '%s' for field structure.\nOnly Byte Fields can't be predicted.\n\n", filename);
+        printf("Adding all DBC, DB2, ADB files in current directory (recursive) to list.\n");
+        isConfig = false;
+    }
+    else
+    {
+        string Line = "";
+        int countLine = 0;
+        while (getline(input, Line))
+        {
+            countLine++;
+            if (Line.empty() || Line[0] == ' ' || Line[0] == '#')
+                continue;
+
+            int pos = Line.find('\t', 0);
+            string tempFileName = Line.substr(0, pos);
+            string tempFileStructure = "";
+            int recordSize = 0;
+            
+            int isDirectory = tempFileName.rfind("/");
+            if (isDirectory+1 == tempFileName.size())
+            {
+                printf("ERROR: %s is a directory not a file (skiping at line %i)\n", tempFileName.c_str(), countLine);
+                continue;
+            }
+
+            int plus = tempFileName.rfind("*.");
+            if (plus != -1)
+            {
+                string plusFileName = tempFileName.substr(plus, tempFileName.size());
+                string secondPlusFileName = plusFileName.substr(2, plusFileName.size());
+                int secondplus = secondPlusFileName.find("*");
+                int sizeplustFileName = plusFileName.size();
+                if (sizeplustFileName < 3 || secondplus != -1)
+                {
+                    printf("Warning: Invalid use *.* or *. needs file extension, for example: *.dbc or ./dirname/*.dbc (ignoring at line %i).\n", countLine);
+                    continue;
+                }
+            }
+            else if (pos == -1 || ((pos != -1) && Line.substr(pos+1, Line.size()).empty()))
+                printf("Warning: No structure found for file '%s' at line %i (Field types will be predicted).\n", Line.substr(0, (pos == -1) ? Line.size() : pos).c_str(), countLine);
+            else if (pos != -1)
+            {
+                tempFileStructure = Line.substr(pos+1, Line.size());
+            
+                bool validStructure = true;
+                for (unsigned int x = 0; x < tempFileStructure.size(); x++)
+                {
+                    switch(tempFileStructure[x])
+                    {
+                        case 'b':    // byte
+                        case 'X':    // unk byte
+                            recordSize += 1;
+                            break;
+                        case 's':    // string
+                        case 'd':    // int
+                        case 'n':    // int
+                        case 'x':    // unk int
+                        case 'i':    // int
+                        case 'f':    // float
+                            recordSize += 4;
+                            break;
+                        default:
+                            printf("ERROR: Invalid structure character '%c' for file '%s' at line: %i (Skiping)\n", tempFileStructure[x], tempFileName.c_str(), countLine);
+                            x = tempFileStructure.size();
+                            validStructure = false;
+                            break;
+                    }
+                }
+
+                if (!validStructure)
+                    continue;
+            }
+
+            map<string, FileStructure>::iterator it = mTempFileNames.find(tempFileName);
+            if (it != mTempFileNames.end())
+            {
+                printf("WARNING: File name already exists in structure: %s at line: %i (Ignoring)\n", tempFileName.c_str(), countLine);
+                continue;
+            }
+            else
+            {
+                FileStructure sFileStructure;
+                sFileStructure.Structure = tempFileStructure;
+                sFileStructure.recordSize = recordSize;
+                mTempFileNames.insert(pair<string, FileStructure>(tempFileName, sFileStructure));
+            }
+        }
+    }
+}
+
+
+
 
 
 
@@ -118,18 +991,39 @@ string CleanFilename(string Filename)
     return outFilename;
 }
 
-void WriteSqlStructure(ofstream& fileRef,string& filename)
+void Reader::WriteSqlStructure(ofstream& fileRef,string& filename)
 {
     // Generate the SQL Header Section
     fileRef << "DROP TABLE IF EXISTS `dbc_" + filename + "`;" << endl;
-    fileRef << "CREATE TABLE `dbc_"+ filename +"` (";
+    fileRef << "CREATE TABLE `dbc_"+ filename +"` (" << endl;
 
     // Generate the SQL for the Fields
-    int maxColumns = 20; //data.Columns.Count
+    int maxColumns = totalFields; //data.Columns.Count
 
-    //for (int i = 0; i < maxColumns; ++i)
-    //{
-    //    fileRef << "\t`" + data.Columns[i].ColumnName + "`" ;
+    for (int currentField = 0; currentField < maxColumns; ++currentField)
+    {
+        fileRef << "\t`Col";
+        fileRef << currentField;
+        fileRef << "`" ;
+
+        if (isStringField[currentField])
+//            fprintf(output, "string");
+            fileRef << " TEXT NOT NULL";
+        else if (isFloatField[currentField])
+//            fprintf(output, "float");
+            fileRef << " FLOAT NOT NULL DEFAULT '0'";
+
+        else if (isByteField[currentField])
+//            fprintf(output, "byte");
+            fileRef << " TINYINT UNSIGNED NOT NULL DEFAULT '0'";
+
+        else if (isIntField[currentField] || isBoolField[currentField])
+//            fprintf(output, "int");
+            fileRef << " INT UNSIGNED NOT NULL DEFAULT '0'";
+
+        if (currentField+1 < totalFields)
+            fileRef << "," << endl;
+ 
 
     //    switch (data.Columns[i].DataType.Name)
     //    {
@@ -167,11 +1061,11 @@ void WriteSqlStructure(ofstream& fileRef,string& filename)
     //            sqlWriter.Write(" TEXT NOT NULL");
     //            break;
     //        default:
-    //            throw new Exception(String.Format("Unknown field type {0}!", data.Columns[i].DataType.Name));
-    //    }
+       //         throw new Exception(String.Format("Unknown field type {0}!", data.Columns[i].DataType.Name));
+//        }
 
-    //    sqlWriter.WriteLine(",");
-    //}
+//        fileRef << ",";
+    }
 
     //foreach (DataColumn index in data.PrimaryKey)
     //{
@@ -180,7 +1074,8 @@ void WriteSqlStructure(ofstream& fileRef,string& filename)
 
 
     // Close off the final part of the header section
-    fileRef << ") ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Export of " + filename + "';" << endl;
+    fileRef << ")" << endl; 
+    fileRef << " ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Export of " + filename + "';" << endl;
 
 }
 
@@ -192,7 +1087,7 @@ static string StripBadCharacters(string input)
     return input;
 }
 
-void WriteSqlData(ofstream& fileRef,string& filename)
+void Reader::WriteSqlData(ofstream& fileRef,string& filename)
 {
     //foreach (DataRow row in data.Rows)
     {
@@ -200,57 +1095,92 @@ void WriteSqlData(ofstream& fileRef,string& filename)
         fileRef << "INSERT INTO `dbc_" + filename + "` VALUES (";
 
         int flds = 0;
-        int maxColumns = 20;//data.Columns.Count
+        int maxColumns = totalFields;//data.Columns.Count
 
-        for (int i = 0; i < maxColumns; ++i)
+        for (int currentRecord = 0; currentRecord < totalRecords; currentRecord++)
         {
-    //        switch (data.Columns[i].DataType.Name)
-    //        {
-    //            case "Int64":
-    //                fileRef << row[i];
-    //                break;
-    //            case "UInt64":
-    //                fileRef << row[i];
-    //                break;
-    //            case "Int32":
-    //                fileRef << row[i];
-    //                break;
-    //            case "UInt32":
-    //                fileRef << row[i];
-    //                break;
-    //            case "Int16":
-    //                fileRef << row[i];
-    //                break;
-    //            case "UInt16":
-    //                fileRef << row[i];
-    //                break;
-    //            case "SByte":
-    //                fileRef << row[i];
-    //                break;
-    //            case "Byte":
-    //                fileRef << row[i];
-    //                break;
-    //            case "Single":
-    //                fileRef << ((float)row[i]).ToString(CultureInfo.InvariantCulture);
-    //                break;
-    //            case "Double":
-    //                fileRef << ((double)row[i]).ToString(CultureInfo.InvariantCulture);
-    //                break;
-    //            case "String":
-    //                fileRef << "\"" + StripBadCharacters((string)row[i]) + "\"";
-    //                break;
-    //            default:
-    //                throw new Exception(String.Format("Unknown field type {0}!", data.Columns[i].DataType.Name));
-    //        }
+            for (int currentField = 0; currentField < totalFields; currentField++)
+            {
+                if (!isWDB && (stringSize > 1) && isStringField[currentField])
+                {
+                    int value = *reinterpret_cast<int *>(recordData[currentRecord][currentField]);
+                    if (value)
+                    {
+                        string outText = "\"";
+                        for (int x = value; x < stringSize; x++)
+                        {
+                            if (!stringData[x])
+                                break;
 
-            if (flds != maxColumns - 1)
-                fileRef << ", ";
+                            if (stringData[x] == '"')
+                                outText.append("\"");
 
-            flds++;
+                            if (stringData[x] == '\r')
+                            {
+                                outText.append("\\r");
+                                continue;
+                            }
+
+                            if (stringData[x] == '\n')
+                            {
+                                outText.append("\\n");
+                                continue;
+                            }
+
+                            outText.append(ToStr(stringData[x]));
+                        }
+                        outText.append("\"");
+                        fileRef << outText.c_str();
+                    }
+                }
+                else if (isWDB && isStringField[currentField])
+                {
+                    string _tempText = reinterpret_cast<char *>(recordData[currentRecord][currentField]);
+                    int value = _tempText.size();
+                    if (value)
+                    {
+                        string outText = "\"";
+                        for (int x = 0; x < value; x++)
+                        {
+                            if (!_tempText[x])
+                                break;
+
+                            if (_tempText[x] == '"')
+                                outText.append("\"");
+
+                            if (_tempText[x] == '\r')
+                            {
+                                outText.append("\\r");
+                                continue;
+                            }
+
+                            if (_tempText[x] == '\n')
+                            {
+                                outText.append("\\n");
+                                continue;
+                            }
+
+                            outText.append(ToStr(_tempText[x]));
+                        }
+                        outText.append("\"");
+                        fileRef << outText.c_str();
+                    }
+                }
+                else if (isFloatField[currentField])
+                    //fprintf(output, "%f", *reinterpret_cast<float *>(recordData[currentRecord][currentField]));
+                    fileRef << *reinterpret_cast<float *>(recordData[currentRecord][currentField]);
+                else if (isByteField[currentField])
+                    //fprintf(output, "%d", *reinterpret_cast<char *>(recordData[currentRecord][currentField]));
+                    fileRef << *reinterpret_cast<char *>(recordData[currentRecord][currentField]);
+                else if (isIntField[currentField] || isBoolField[currentField])
+                    //fprintf(output, "%i", *reinterpret_cast<int *>(recordData[currentRecord][currentField]));
+                    fileRef << *reinterpret_cast<int *>(recordData[currentRecord][currentField]);
+
+                if (currentField+1 < totalFields)
+                    fileRef << ",";
+            }
+            fileRef << endl;
         }
-
-        fileRef << ");";
-        fileRef << endl;
     }
 }
 
@@ -259,24 +1189,52 @@ void ExtractSQL( const char* FileName )
 {
 	string filename2  = string(FileName)+".sql";
 
-	// open a file in write mode.
-	ofstream outfile;
-	outfile.open(filename2);
+    string tempFileStructure = "";
+    int recordSize = 0;
 
-	if(outfile.is_open())
-	{
-		// Read DBC File data into memory
-		//	Reader cReader;
-		//	if (cReader.LoadBinary((char*)filename.c_str(), fileExt, recordSize))
-		
-		//Build the SQL File Header
-		WriteSqlStructure(outfile,CleanFilename(string(FileName)));
+    FileStructure sFileStructure;
+    sFileStructure.Structure = tempFileStructure;
+    sFileStructure.recordSize = recordSize;
 
-		//Build the SQL File Body Data
-		WriteSqlData(outfile,CleanFilename(string(FileName)));
-	}
-	outfile.close();
-	printf("Generated %s\n",filename2);
+    Reader cReader;
+    if (CONF_generate_csv_files || CONF_generate_csv_files)
+    {
+        printf ("Generating: ");
+        //cout << "Generating: ";
+        // Read DBC File data into memory
+        if (cReader.LoadBinary((char*)FileName, sFileStructure.Structure, sFileStructure.recordSize))
+        {
+	        // open a file in write mode.
+	        ofstream outfile;
+	        outfile.open(filename2);
+
+	        if(outfile.is_open())
+	        {		
+                //Generate CSV files Here
+			    if (CONF_generate_csv_files)
+			    {
+				    cReader.ExtractBinaryInfo(FileName);
+//                    cout << "CSV ";
+                    printf("CSV ");
+			    }
+
+
+                //Build the SQL File Header
+			    if (CONF_generate_sql_files)
+			    {
+                    cReader.WriteSqlStructure(outfile,CleanFilename(string(FileName)));
+
+                    //Build the SQL File Body Data
+                    cReader.WriteSqlData(outfile,CleanFilename(string(FileName)));
+//                    cout << "SQL ";
+                    printf ("SQL ");
+//                    printf("    Generating %s\n",filename2);
+                }
+            }
+	        outfile.close();
+            printf ("\n");
+        }
+    }
 }
 
 bool FileExists( const char* FileName )
@@ -302,7 +1260,8 @@ void Usage(char* prg)
 		"-e extract only MAP(1)/DBC(2) - temporary only: DBC(2)\n"
 		"-f height stored as int (less map size but lost some accuracy) 1 by default\n"
 		"-b extract data for specific build (at least not greater it from available). Min supported build %u.\n"
-		"-s generate SQL files from DBC\n"
+		"-s generate SQL file from DBC\n"
+		"-c generate CSV file from DBC\n"
 		"-r remove DBC file after SQL generation\n"
 		"Example: %s -f 0 -i \"c:\\games\\game\"", prg, MIN_SUPPORTED_BUILD, prg);
 	exit(1);
@@ -317,7 +1276,8 @@ void HandleArgs(int argc, char * arg[])
 		// e - extract only MAP(1)/DBC(2) - standard both(3)
 		// f - use float to int conversion
 		// h - limit minimum height
-		// s - generate SQL files from DBC
+		// s - generate SQL file from DBC
+		// c - generate CSV file from DBC
 		// r - remove DBC file after SQL generation\
 
 		if(arg[c][0] != '-')
@@ -366,6 +1326,13 @@ void HandleArgs(int argc, char * arg[])
 			case 's':
 				//if(c + 1 < argc)                            // all ok
 					CONF_generate_sql_files=true;
+				//else
+				//    Usage(arg[0]);
+				break;
+
+			case 'c':
+				//if(c + 1 < argc)                            // all ok
+					CONF_generate_csv_files=true;
 				//else
 				//    Usage(arg[0]);
 				break;
@@ -1285,13 +2252,17 @@ void ExtractDBCFiles(int locale, bool basicLocale)
 
 		if (ExtractFile(iter->c_str(), filename))
 		{
-			//Generate SQL files Here
-			if (CONF_generate_sql_files)
+            printf ("Extracted %s ",filename.c_str());
+            //Generate SQL / CSV files Here
+			printf ("Debug: %s %s",CONF_generate_sql_files,CONF_generate_csv_files);
+
+            if (CONF_generate_sql_files || CONF_generate_csv_files)
 			{
 				ExtractSQL(filename.c_str());
 			}
-		}
-			++count;
+            printf ("\n");
+        }
+		++count;
 	}
 	printf("Extracted %u DBC/DB2 files\n\n", count);
 
