@@ -63,7 +63,7 @@ uint16 *LiqType;
 char output_path[128] = ".";
 char input_path[128] = ".";
 uint32 maxAreaId = 0;
-uint32 CONF_max_build = 0;
+int CONF_max_build = 0;
 
 //**************************************************
 // Extractor options
@@ -97,14 +97,14 @@ bool  CONF_create_xml_file = false;				 // Build an XML config file based on DBC
 static char* const langs[] = {"enGB", "enUS", "deDE", "esES", "frFR", "koKR", "zhCN", "zhTW", "enCN", "enTW", "esMX", "ruRU" };
 
 //TODO: Move this into the XML file
-#define LANG_COUNT 12
+int LANG_COUNT = 12;
 
 //TODO: Move this into the XML file
-#define MIN_SUPPORTED_BUILD 15050                           // code expect mpq files and mpq content files structure for this build or later
+int MIN_SUPPORTED_BUILD = 15050;                           // code expect mpq files and mpq content files structure for this build or later
 //TODO: Move this into the XML file
-#define EXPANSION_COUNT 4
+int EXPANSION_COUNT = 4;
 //TODO: Move this into the XML file
-#define WORLD_COUNT 2
+int WORLD_COUNT = 2;
 
 class Reader
 {
@@ -2231,7 +2231,7 @@ void ExtractMapsFromMpq(uint32 build, const int locale)
 }
 
 
-void ExtractDBCFiles(int locale, bool basicLocale)
+void ExtractDBCFiles(int locale, bool basicLocale, uint32& ClientVersion)
 {
     printf("Extracting dbc files...\n");
 
@@ -2291,14 +2291,11 @@ void ExtractDBCFiles(int locale, bool basicLocale)
             xmlfile << "    <Config>" << endl;
             xmlfile << "        <Lang_Count>12</Lang_Count>" << endl;
             xmlfile << "        <Languages>\"enGB\", \"enUS\", \"deDE\", \"esES\", \"frFR\", \"koKR\", \"zhCN\", \"zhTW\", \"enCN\", \"enTW\", \"esMX\", \"ruRU\"</Languages>" << endl;
-            xmlfile << "        <Min_Supported_Build>15050</Min_Supported_Build>" << endl;
+            xmlfile << "        <Min_Supported_Build>" << ClientVersion << "</Min_Supported_Build>" << endl;
             xmlfile << "        <Expansion_Count>4</Expansion_Count>" << endl;
             xmlfile << "        <World_Count>2</World_Count>" << endl;
             xmlfile << "    </Config>" << endl;
             xmlfile << "    <Files>" << endl;
-//        xmlfile.close();
-        //Now open it as append
-//        xmlfile.open( "ad_config_generated.xml", ios::out | ios::app ); 
         }
     }
 
@@ -2321,6 +2318,16 @@ void ExtractDBCFiles(int locale, bool basicLocale)
                 printf ("\n");
             }
         }
+        
+        //Remove DBC file Here
+        if (CONF_remove_dbc)
+        {
+                if( remove( filename.c_str() ) != 0 )
+                {
+                    //Failed to delete the file, prevent any more operations on the file
+                    printf( "Error deleting file: %s",filename);
+                }
+        }
         ++count;
     }
 
@@ -2341,10 +2348,6 @@ void ExtractDBCFiles(int locale, bool basicLocale)
 
     printf("Extracted %u DBC/DB2 files\n\n", count);
 
-    ////Remove DBC file Here
-    //if (CONF_remove_dbc)
-    //{
-    //}
 }
 
 typedef std::pair<std::string /*full_filename*/, char const* /*locale_prefix*/> UpdatesPair;
@@ -2382,7 +2385,7 @@ void AppendPatchMPQFilesToList(char const* subdir, char const* suffix, char cons
             if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
                 continue;
 
-            uint32 ubuild = 0;
+            int ubuild = 0;
             if (sscanf(ffd.cFileName, scanname, &ubuild) == 1 && (!CONF_max_build || ubuild <= CONF_max_build))
                 updates[ubuild] = UpdatesPair(ffd.cFileName, section);
         }
@@ -2495,13 +2498,35 @@ void LoadBaseMPQFiles()
 
 int main(int argc, char * arg[])
 {
-    printf("Map & DBC Extractor\n");
-    printf("===================\n\n");
+    printf("Map & DBC Extractor v2\n");
+    printf("======================\n\n");
 
     HandleArgs(argc, arg);
 
     int FirstLocale = -1;
     uint32 build = 0;
+
+    //ifstream xmlfile ("ad_config_generated.xml");
+    //string thisLine;
+    //if (xmlfile.is_open())
+    //{
+    //    while ( xmlfile.good() )
+    //    {
+    //      std::getline(xmlfile,thisLine);
+    //        if (thisLine.find("Min_Supported_Build") != string::npos) { 
+    //        //.. found. 
+    //            //replaceAll(thisLine,"Min_Supported_Build",""); 
+    //            //replaceAll(thisLine,"<",""); 
+    //            //replaceAll(thisLine,">",""); 
+    //            //
+    //            //printf("Min_Supported_Build=%s.......\n" , thisLine);
+    //        //    MIN_SUPPORTED_BUILD = 666;
+    //        }
+    //    }    
+    //}
+
+    //xmlfile.close();
+
 
     for (int i = 0; i < LANG_COUNT; i++)
     {
@@ -2528,10 +2553,10 @@ int main(int argc, char * arg[])
                 FirstLocale = i;
                 build = ReadBuild(FirstLocale);
                 printf("Detected client build: %u\n", build);
-                ExtractDBCFiles(i, true);
+                ExtractDBCFiles(i, true,build);
             }
             else
-                ExtractDBCFiles(i, false);
+                ExtractDBCFiles(i, false,build);
 
             //Close MPQs
             CloseArchives();
