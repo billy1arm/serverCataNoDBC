@@ -90,12 +90,20 @@ float CONF_flat_liquid_delta_limit = 0.001f; // If max - min less this value - l
 bool  CONF_generate_sql_files = false;		 // Generate SQL files from DBC Files
 bool  CONF_generate_csv_files = false;		 // Generate CSV files from DBC Files
 bool  CONF_remove_dbc = false;				 // Remove DBC after SQL Generation
+bool  CONF_create_xml_file = false;				 // Build an XML config file based on DBC file contents
 
+
+//TODO: Move this into the XML file
 static char* const langs[] = {"enGB", "enUS", "deDE", "esES", "frFR", "koKR", "zhCN", "zhTW", "enCN", "enTW", "esMX", "ruRU" };
+
+//TODO: Move this into the XML file
 #define LANG_COUNT 12
 
+//TODO: Move this into the XML file
 #define MIN_SUPPORTED_BUILD 15050                           // code expect mpq files and mpq content files structure for this build or later
+//TODO: Move this into the XML file
 #define EXPANSION_COUNT 4
+//TODO: Move this into the XML file
 #define WORLD_COUNT 2
 
 class Reader
@@ -105,11 +113,12 @@ class Reader
         ~Reader();
         bool LoadBinary(char *, string, int);
         bool LoadWDB(char *, string, unsigned char *, int);
-        bool LoadADB_DBC_DB2(char *, string, unsigned char *, int);
+        //bool LoadADB_DBC_DB2(char *, string, unsigned char *, int);
         bool LoadADB_DBC_DB2_predicted(char *, unsigned char *);
         void ExtractBinaryInfo(string fileName);
         void WriteSqlStructure(ofstream& fileRef,string& filename);
         void WriteSqlData(ofstream& fileRef,string& filename);
+        void GenerateXml(ofstream& fileRef,string& filename);
         template<typename T> string ToStr(T);
         void InitializeBoolFielTypes(int);
     private:
@@ -359,22 +368,22 @@ bool Reader::LoadBinary(char *fileName, string fileFormat, int _recordSize)
         else
             _tempFileType = "DB2";
 
-        if (fileFormat.size())
-        {
-            if (LoadADB_DBC_DB2(fileName, fileFormat, dataData, _recordSize))
-//                printf("%s file loaded: '%s'.\n", _tempFileType, fileName);
-                cout << _tempFileType << " file '" << fileName << " loaded: ";
-            else
-                return false;
-        }
-        // Predicted
-        else
-        {
+//        if (fileFormat.size())
+//        {
+//            if (LoadADB_DBC_DB2(fileName, fileFormat, dataData, _recordSize))
+////                printf("%s file loaded: '%s'.\n", _tempFileType, fileName);
+//                cout << _tempFileType << " file '" << fileName << " loaded: ";
+//            else
+//                return false;
+//        }
+//        // Predicted
+//        else
+//        {
             if (!LoadADB_DBC_DB2_predicted(fileName, dataData))
 //                printf("Predicted: %s file loaded: '%s'.\n", _tempFileType, fileName);
 //            else
                 return false;
-        }
+//        }
     }
 
     // por si las dudas
@@ -505,69 +514,69 @@ bool Reader::LoadADB_DBC_DB2_predicted(char *fileName, unsigned char *data)
     return true;
 }
 
-bool Reader::LoadADB_DBC_DB2(char *fileName, string fileFormat, unsigned char *data, int _recordSize)
-{
-    if (fileFormat.size() != totalFields)
-    {
-        printf("ERROR: '%s': Incorrect field format size. Expected '%i' not '%i' fields.\n", fileName, totalFields, fileFormat.size());
-        return false;
-    }
-
-    if (_recordSize != recordSize)
-    {
-        printf("ERROR: '%s': Incorrect field format structure, Expected '%i' not %i bytes per record.\n", fileName, recordSize, _recordSize);
-        return false;
-    }
-
-    // Esta funcion es necesaria, de lo contrario ocasionara crash
-    InitializeBoolFielTypes(totalFields);
-
-    // iniciando el tipo de dato
-    for (int currentField = 0; currentField < totalFields; currentField++)
-    {
-        switch (fileFormat[currentField])
-        {
-            case 'b':    // byte
-            case 'X':    // unk byte
-                isByteField[currentField] = true;
-                break;
-            case 's':    // string
-                isStringField[currentField] = true;
-                break;
-            case 'd':    // int
-            case 'n':    // int
-            case 'x':    // unk int
-            case 'i':    // int
-                isIntField[currentField] = true;
-                break;
-            case 'f':    // float
-                isFloatField[currentField] = true;
-                break;
-        }
-    }
-
-    int offset = 0;    // contador global usado para saber en que posicion debe leer el siguiente registro
-
-    for (int currentRecord = 0; currentRecord < totalRecords; currentRecord++)
-    {
-        vector<unsigned char *> fieldData;
-        for (int currentField = 0; currentField < totalFields; currentField++)
-        {
-            int fieldSize = 0;
-
-            if (isByteField[currentField])
-                fieldSize = 1;
-            else
-                fieldSize = 4;
-
-            fieldData.push_back(data + offset);
-            offset += fieldSize;
-        }
-        recordData.push_back(fieldData);
-    }
-
-    return true;
-}
+//bool Reader::LoadADB_DBC_DB2(char *fileName, string fileFormat, unsigned char *data, int _recordSize)
+//{
+//    if (fileFormat.size() != totalFields)
+//    {
+//        printf("ERROR: '%s': Incorrect field format size. Expected '%i' not '%i' fields.\n", fileName, totalFields, fileFormat.size());
+//        return false;
+//    }
+//
+//    if (_recordSize != recordSize)
+//    {
+//        printf("ERROR: '%s': Incorrect field format structure, Expected '%i' not %i bytes per record.\n", fileName, recordSize, _recordSize);
+//        return false;
+//    }
+//
+//    // Esta funcion es necesaria, de lo contrario ocasionara crash
+//    InitializeBoolFielTypes(totalFields);
+//
+//    // iniciando el tipo de dato
+//    for (int currentField = 0; currentField < totalFields; currentField++)
+//    {
+//        switch (fileFormat[currentField])
+//        {
+//            case 'b':    // byte
+//            case 'X':    // unk byte
+//                isByteField[currentField] = true;
+//                break;
+//            case 's':    // string
+//                isStringField[currentField] = true;
+//                break;
+//            case 'd':    // int
+//            case 'n':    // int
+//            case 'x':    // unk int
+//            case 'i':    // int
+//                isIntField[currentField] = true;
+//                break;
+//            case 'f':    // float
+//                isFloatField[currentField] = true;
+//                break;
+//        }
+//    }
+//
+//    int offset = 0;    // contador global usado para saber en que posicion debe leer el siguiente registro
+//
+//    for (int currentRecord = 0; currentRecord < totalRecords; currentRecord++)
+//    {
+//        vector<unsigned char *> fieldData;
+//        for (int currentField = 0; currentField < totalFields; currentField++)
+//        {
+//            int fieldSize = 0;
+//
+//            if (isByteField[currentField])
+//                fieldSize = 1;
+//            else
+//                fieldSize = 4;
+//
+//            fieldData.push_back(data + offset);
+//            offset += fieldSize;
+//        }
+//        recordData.push_back(fieldData);
+//    }
+//
+//    return true;
+//}
 
 bool Reader::LoadWDB(char *fileName, string format, unsigned char *data, int dataSize)
 {
@@ -846,10 +855,7 @@ void Reader::ExtractBinaryInfo(string fileName)
         }
         fprintf(output, "\n");
     }
-
     fclose(output);
-
-    //printf("CSV file created: '%s'.\n", outputFileName.c_str());
 }
 
 struct FileStructure
@@ -959,10 +965,6 @@ bool isConfig = true;
 //}
 //
 
-
-
-
-
 void CreateDir( const std::string& Path )
 {
     #ifdef WIN32
@@ -1002,12 +1004,18 @@ void Reader::WriteSqlStructure(ofstream& fileRef,string& filename)
     // Generate the SQL for the Fields
     int maxColumns = totalFields; //data.Columns.Count
 
+    //TODO: Check the totalFields matches the number listed in the config file for this file
+    //      If it does, replace the Colxx column names with fieldnames from the config file
+
     for (int currentField = 0; currentField < maxColumns; ++currentField)
     {
+        //TODO:     Check the config file to see whether this column should be included.
+
         fileRef << "\t`Col";
         fileRef << currentField;
         fileRef << "`" ;
 
+        //TODO: Override these settings with values from the Config File
         if (isStringField[currentField])
             fileRef << " TEXT NOT NULL";
         else if (isFloatField[currentField])
@@ -1023,6 +1031,7 @@ void Reader::WriteSqlStructure(ofstream& fileRef,string& filename)
             fileRef << "," << endl;
     } 
 
+    //TODO:     Build a list of the primary keys and add this to the SQL definition    
     //{
     //    sqlWriter.WriteLine("\tPRIMARY KEY (`{0}`)", index.ColumnName);
     //}
@@ -1032,6 +1041,43 @@ void Reader::WriteSqlStructure(ofstream& fileRef,string& filename)
     fileRef << " ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Export of " + filename + "';" << endl;
     fileRef << " SET NAMES UTF8;" << endl;
 
+}
+
+void Reader::GenerateXml(ofstream& fileRef,string& filename)
+{
+    // Generate the SQL Header Section
+    fileRef << "        <" + filename + ">" << endl;
+    fileRef << "            <include>Y</include>" << endl;
+    fileRef << "            <tablename>dbc_" + filename + "</tablename>" << endl;
+    fileRef << "            <fieldcount>" << totalFields << "</fieldcount>" << endl;
+
+    // Generate the SQL for the Fields
+    //TODO: Check the totalFields matches the number listed in the config file for this file
+    //      If it does, replace the Colxx column names with fieldnames from the config file
+
+    for (int currentField = 0; currentField < totalFields; ++currentField)
+    {
+        //TODO:     Check the config file to see whether this column should be included.
+
+        fileRef << "            <field type=\"";
+
+        //TODO: Override these settings with values from the Config File
+        if (isStringField[currentField])
+            fileRef << "text\"";
+        else if (isFloatField[currentField])
+            fileRef << "float\"";
+
+        else if (isByteField[currentField])
+            fileRef << "tinyint\"";
+
+        else if (isIntField[currentField] || isBoolField[currentField])
+            fileRef << "bigint\"";
+
+//        if (currentField+1 < totalFields)
+            fileRef << " name=\"col" << currentField << "\" include=\"y\" />" << endl;
+    } 
+    fileRef << "        </" + filename + ">" << endl;
+//    fileRef.close();
 }
 
 static string StripBadCharacters(string input)
@@ -1149,12 +1195,13 @@ void Reader::WriteSqlData(ofstream& fileRef,string& filename)
     }
 }
 
+
 inline const char * const BoolToString(bool b) 
 { 
   return b ? "true" : "false"; 
 } 
 
-void ExtractSQL( const char* FileName )
+void ExportFiles(ofstream& fileRef, const char* FileName )
 {
     string filename2  = string(FileName)+".sql";
 
@@ -1167,7 +1214,7 @@ void ExtractSQL( const char* FileName )
 
     Reader cReader;
 
-    if (CONF_generate_csv_files || CONF_generate_sql_files)
+    if (CONF_generate_csv_files || CONF_generate_sql_files || CONF_create_xml_file)
     {
         printf ("Generating: ");
 
@@ -1195,6 +1242,13 @@ void ExtractSQL( const char* FileName )
                     //Build the SQL File Body Data
                     cReader.WriteSqlData(outfile,CleanFilename(string(FileName)));
                     printf ("SQL ");
+                }
+
+                //Generate XML file contents Here
+                if (CONF_create_xml_file)
+                {
+                    cReader.GenerateXml(fileRef,CleanFilename(string(FileName)));
+                    printf("XML ");
                 }
             }
             outfile.close();
@@ -1229,6 +1283,7 @@ void Usage(char* prg)
         "-s generate SQL file from DBC\n"
         "-c generate CSV file from DBC\n"
         "-r remove DBC file after SQL generation\n"
+        "-x generate XML Config file"
         "Example: %s -f 0 -i \"c:\\games\\game\"", prg, MIN_SUPPORTED_BUILD, prg);
     exit(1);
 }
@@ -1245,6 +1300,7 @@ void HandleArgs(int argc, char * arg[])
         // s - generate SQL file from DBC
         // c - generate CSV file from DBC
         // r - remove DBC file after SQL generation\
+        // x - generate XML Config file"
 
         if(arg[c][0] != '-')
             Usage(arg[0]);
@@ -1299,6 +1355,9 @@ void HandleArgs(int argc, char * arg[])
 
             case 'r':
                     CONF_remove_dbc=true;
+                break;
+            case 'x':
+                    CONF_create_xml_file=true;
                 break;
 
             default:
@@ -2203,6 +2262,30 @@ void ExtractDBCFiles(int locale, bool basicLocale)
 
     // extract DBCs
     int count = 0;
+
+    //Generate XML file Here
+    ofstream xmlfile;
+    if (CONF_create_xml_file)
+    {
+        //Overwrite the existing config file and write basic header values out
+        xmlfile.open( "ad_config_generated.xml", ios::out ); 
+        xmlfile << "<?xml version=\"1.0\"?>" << endl;
+        xmlfile << "<root>" << endl;
+        xmlfile << "    <Config>" << endl;
+        xmlfile << "        <Lang_Count>12</Lang_Count>" << endl;
+        xmlfile << "        <Languages>\"enGB\", \"enUS\", \"deDE\", \"esES\", \"frFR\", \"koKR\", \"zhCN\", \"zhTW\", \"enCN\", \"enTW\", \"esMX\", \"ruRU\"</Languages>" << endl;
+        xmlfile << "        <Min_Supported_Build>15050</Min_Supported_Build>" << endl;
+        xmlfile << "        <Expansion_Count>4</Expansion_Count>" << endl;
+        xmlfile << "        <World_Count>2</World_Count>" << endl;
+        xmlfile << "    </Config>" << endl;
+        xmlfile << "    <Files>" << endl;
+        xmlfile.close();
+        //Now open it as append
+        xmlfile.open( "ad_config_generated.xml", ios::out | ios::app ); 
+
+    }
+
+
     for (std::set<std::string>::iterator iter = dbcfiles.begin(); iter != dbcfiles.end(); ++iter)
     {
         std::string filename = path;
@@ -2212,14 +2295,31 @@ void ExtractDBCFiles(int locale, bool basicLocale)
         {
             printf ("Extracted %s ",filename.c_str());
             //Generate SQL / CSV files Here
-            if (CONF_generate_sql_files || CONF_generate_csv_files)
+            if (CONF_generate_sql_files || CONF_generate_csv_files || CONF_create_xml_file)
             {
-                ExtractSQL(filename.c_str());
+                ExportFiles(xmlfile,filename.c_str());
             }
-            //printf ("\n");
+            else
+            {
+                printf ("\n");
+            }
         }
         ++count;
     }
+
+        //Generate XML file Here
+    if (CONF_create_xml_file)
+    {
+        //Close off the XML
+        xmlfile << "    </Files>" << endl;
+        xmlfile << "</root>" << endl;
+
+        xmlfile.close();
+        printf("XML config file created\n");
+    }
+
+
+
     printf("Extracted %u DBC/DB2 files\n\n", count);
 
     ////Remove DBC file Here

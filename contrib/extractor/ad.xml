@@ -1,25 +1,34 @@
 <?xml version="1.0"?>
-<Files> 
- <Item>
-    <include>N</include>
-    <tablename>tblItem</tablename>
-    <field type="uint" name="id" />
-    <field type="uint" name="class" />
-    <field type="uint" name="subclass" />
-    <field type="int" name="unk0" />
-    <field type="int" name="material" />
-    <field type="uint" name="displayid" />
-    <field type="uint" name="inventorytype" />
-    <field type="uint" name="sheath" />
-  </Item>
-
-  <ItemDisplayInfo>
-    <tablename>tblItemDisplayInfo</tablename>
-    <include>Y</include>
-    <index>
-      <primary>id</primary>
-    </index>
-    <field type="int" name="id" />
-    <field type="string" name="icon" />
-  </ItemDisplayInfo>
- </Files>
+<root>
+    <Config>
+        <Lang_Count>12</Lang_Count>
+        <Languages>"enGB", "enUS", "deDE", "esES", "frFR", "koKR", "zhCN", "zhTW", "enCN", "enTW", "esMX", "ruRU"</Languages>
+        <Min_Supported_Build>15050</Min_Supported_Build>
+        <Expansion_Count>4</Expansion_Count>
+        <World_Count>2</World_Count>
+    </Config>
+    <Files>
+        <Item>
+	    <include>N</include>
+            <tablename>dbc_Item</tablename>
+            <fieldcount>8</fieldcount>
+	    <field type="bigint" name="id" include="y" />
+	    <field type="bigint" name="class" include="y" />
+	    <field type="bigint" name="subclass" include="y" />
+	    <field type="int" name="unk0" include="n" />
+	    <field type="int" name="material" include="y" />
+	    <field type="bigint" name="displayid" include="y" />
+	    <field type="bigint" name="inventorytype" include="y" />
+	    <field type="bigint" name="sheath" include="y" />
+        </Item>
+	  <ItemDisplayInfo>
+		<tablename>tblItemDisplayInfo</tablename>
+		<include>Y</include>
+		<index>
+		  <primary>id</primary>
+		</index>
+		<field type="int" name="id" include="y" />
+		<field type="string" name="icon" include="y" />
+	  </ItemDisplayInfo>
+	 </Files>
+</root>
