@@ -1247,8 +1247,11 @@ void ExportFiles(ofstream& fileRef, const char* FileName )
                 //Generate XML file contents Here
                 if (CONF_create_xml_file)
                 {
-                    cReader.GenerateXml(fileRef,CleanFilename(string(FileName)));
-                    printf("XML ");
+                    if(fileRef.is_open())
+                    {
+                        cReader.GenerateXml(fileRef,CleanFilename(string(FileName)));
+                        printf("XML ");
+                    }
                 }
             }
             outfile.close();
@@ -2262,27 +2265,41 @@ void ExtractDBCFiles(int locale, bool basicLocale)
 
     // extract DBCs
     int count = 0;
-
+    int xmlError = 0;
     //Generate XML file Here
     ofstream xmlfile;
     if (CONF_create_xml_file)
     {
-        //Overwrite the existing config file and write basic header values out
-        xmlfile.open( "ad_config_generated.xml", ios::out ); 
-        xmlfile << "<?xml version=\"1.0\"?>" << endl;
-        xmlfile << "<root>" << endl;
-        xmlfile << "    <Config>" << endl;
-        xmlfile << "        <Lang_Count>12</Lang_Count>" << endl;
-        xmlfile << "        <Languages>\"enGB\", \"enUS\", \"deDE\", \"esES\", \"frFR\", \"koKR\", \"zhCN\", \"zhTW\", \"enCN\", \"enTW\", \"esMX\", \"ruRU\"</Languages>" << endl;
-        xmlfile << "        <Min_Supported_Build>15050</Min_Supported_Build>" << endl;
-        xmlfile << "        <Expansion_Count>4</Expansion_Count>" << endl;
-        xmlfile << "        <World_Count>2</World_Count>" << endl;
-        xmlfile << "    </Config>" << endl;
-        xmlfile << "    <Files>" << endl;
-        xmlfile.close();
-        //Now open it as append
-        xmlfile.open( "ad_config_generated.xml", ios::out | ios::app ); 
+        //Check if config file exists
+        ifstream my_file("ad_config_generated.xml"); 
+        if (my_file.good()) 
+        {   //It does, delete it
+            my_file.close();
+            if( remove( "ad_config_generated.xml" ) != 0 )
+            {
+                //Failed to delete the file, prevent any more operations on the file
+                perror( "Error deleting file: ad_config_generated.xml");
+                xmlError=1;
+            }
+        } 
 
+        if(xmlError == 0)
+        {
+            xmlfile.open( "ad_config_generated.xml", ios::out | ios::app); 
+            xmlfile << "<?xml version=\"1.0\"?>" << endl;
+            xmlfile << "<root>" << endl;
+            xmlfile << "    <Config>" << endl;
+            xmlfile << "        <Lang_Count>12</Lang_Count>" << endl;
+            xmlfile << "        <Languages>\"enGB\", \"enUS\", \"deDE\", \"esES\", \"frFR\", \"koKR\", \"zhCN\", \"zhTW\", \"enCN\", \"enTW\", \"esMX\", \"ruRU\"</Languages>" << endl;
+            xmlfile << "        <Min_Supported_Build>15050</Min_Supported_Build>" << endl;
+            xmlfile << "        <Expansion_Count>4</Expansion_Count>" << endl;
+            xmlfile << "        <World_Count>2</World_Count>" << endl;
+            xmlfile << "    </Config>" << endl;
+            xmlfile << "    <Files>" << endl;
+//        xmlfile.close();
+        //Now open it as append
+//        xmlfile.open( "ad_config_generated.xml", ios::out | ios::app ); 
+        }
     }
 
 
@@ -2307,17 +2324,19 @@ void ExtractDBCFiles(int locale, bool basicLocale)
         ++count;
     }
 
-        //Generate XML file Here
-    if (CONF_create_xml_file)
+    //Generate XML File trailing section Here
+    if (xmlError == 0)
     {
-        //Close off the XML
-        xmlfile << "    </Files>" << endl;
-        xmlfile << "</root>" << endl;
+        if (CONF_create_xml_file)
+        {
+            //Close off the XML
+            xmlfile << "    </Files>" << endl;
+            xmlfile << "</root>" << endl;
 
-        xmlfile.close();
-        printf("XML config file created\n");
+            xmlfile.close();
+            printf("XML config file created\n");
+        }
     }
-
 
 
     printf("Extracted %u DBC/DB2 files\n\n", count);
