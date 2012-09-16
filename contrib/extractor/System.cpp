@@ -2286,7 +2286,7 @@ void ExtractDBCFiles(int locale, bool basicLocale, uint32& ClientVersion)
         if(xmlError == 0)
         {
             xmlfile.open( "ad_config_generated.xml", ios::out | ios::app); 
-            xmlfile << "<?xml version=\"1.0\"?>" << endl;
+            xmlfile << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
             xmlfile << "<root>" << endl;
             xmlfile << "    <Config>" << endl;
             xmlfile << "        <Lang_Count>12</Lang_Count>" << endl;
@@ -2506,26 +2506,84 @@ int main(int argc, char * arg[])
     int FirstLocale = -1;
     uint32 build = 0;
 
-    //ifstream xmlfile ("ad_config_generated.xml");
-    //string thisLine;
-    //if (xmlfile.is_open())
-    //{
-    //    while ( xmlfile.good() )
-    //    {
-    //      std::getline(xmlfile,thisLine);
-    //        if (thisLine.find("Min_Supported_Build") != string::npos) { 
-    //        //.. found. 
-    //            //replaceAll(thisLine,"Min_Supported_Build",""); 
-    //            //replaceAll(thisLine,"<",""); 
-    //            //replaceAll(thisLine,">",""); 
-    //            //
-    //            //printf("Min_Supported_Build=%s.......\n" , thisLine);
-    //        //    MIN_SUPPORTED_BUILD = 666;
-    //        }
-    //    }    
-    //}
+    ifstream xmlfile ("ad_config_generated.xml");
+    string thisLine;
+    if (xmlfile.is_open())
+    {
+        while ( xmlfile.good() )
+        {
+          std::getline(xmlfile,thisLine);
+            if (thisLine.find("<Min_Supported_Build>") != string::npos) 
+            { 
+            //.. found. 
+                string result=thisLine;
+                replaceAll(result,"Min_Supported_Build","");
+                replaceAll(result,"/","");
+                replaceAll(result,"<>","");
+                replaceAll(result," ","");
+   
+                printf("Min_Supported_Build=%s\n" , result);
+                int numb;
+                istringstream ( result ) >> numb;
+                MIN_SUPPORTED_BUILD = numb;
+            }
+            else if (thisLine.find("<Lang_Count>") != string::npos) 
+            {
+                string result=thisLine;
+                replaceAll(result,"Lang_Count","");
+                replaceAll(result,"/","");
+                replaceAll(result,"<>","");
+                replaceAll(result," ","");
+   
+                printf("No. Languages=%s\n" , result);
+                int numb;
+                istringstream ( result ) >> numb;
+                LANG_COUNT = numb;
 
-    //xmlfile.close();
+            }
+            else if (thisLine.find("<Expansion_Count>") != string::npos) 
+            {
+                string result=thisLine;
+                replaceAll(result,"Expansion_Count","");
+                replaceAll(result,"/","");
+                replaceAll(result,"<>","");
+                replaceAll(result," ","");
+   
+                printf("No. Expansions=%s\n" , result);
+                int numb;
+                istringstream ( result ) >> numb;
+                EXPANSION_COUNT = numb;
+            }
+            else if (thisLine.find("<World_Count>") != string::npos) 
+            {
+                string result=thisLine;
+                replaceAll(result,"World_Count","");
+                replaceAll(result,"/","");
+                replaceAll(result,"<>","");
+                replaceAll(result," ","");
+   
+                printf("No. worlds=%s\n" , result);
+                int numb;
+                istringstream ( result ) >> numb;
+                WORLD_COUNT = numb;
+
+            }
+            //else if (thisLine.find("<Languages>") != string::npos) 
+            //{
+            //    string result=thisLine;
+            //    replaceAll(result,"Languages","");
+            //    replaceAll(result,"/","");
+            //    replaceAll(result,"<>","");
+            //    replaceAll(result," ","");
+   
+            //    printf("Languages=%s\n" , result);
+            //    langs = new char {result};
+      
+            //}
+        }    
+    }
+
+    xmlfile.close();
 
 
     for (int i = 0; i < LANG_COUNT; i++)
