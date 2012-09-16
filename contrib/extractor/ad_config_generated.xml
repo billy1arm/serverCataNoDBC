@@ -3,12 +3,15 @@
     <Config>
         <Lang_Count>12</Lang_Count>
         <Languages>"enGB", "enUS", "deDE", "esES", "frFR", "koKR", "zhCN", "zhTW", "enCN", "enTW", "esMX", "ruRU"</Languages>
-        <Min_Supported_Build>15500</Min_Supported_Build>
+        <Min_Supported_Build>15050</Min_Supported_Build>
         <Expansion_Count>4</Expansion_Count>
         <World_Count>2</World_Count>
     </Config>
     <Files>
         <Achievement>
+	    <index>
+	      <primary>id</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_Achievement</tablename>
             <fieldcount>14</fieldcount>
@@ -28,6 +31,9 @@
 	    <field type="uint" name="refAchievement" include="y" />
         </Achievement>
         <Achievement_Category>
+	    <index>
+	      <primary>id</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_Achievement_Category</tablename>
             <fieldcount>4</fieldcount>
@@ -73,15 +79,18 @@
             <field type="bigint" name="col2" include="y" />
         </AnimKit>
         <AnimKitBoneSet>
+	    <index>
+	      <primary>m_id</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_AnimKitBoneSet</tablename>
             <fieldcount>6</fieldcount>
-            <field type="bigint" name="col0" include="y" />
-            <field type="text" name="col1" include="y" />
-            <field type="bigint" name="col2" include="y" />
-            <field type="bigint" name="col3" include="y" />
-            <field type="bigint" name="col4" include="y" />
-            <field type="bigint" name="col5" include="y" />
+	    <field type="uint" name="m_id" include="y" />
+	    <field type="string" name="m_field1" include="y" />
+	    <field type="int" name="m_field2" include="y" />
+	    <field type="int" name="m_field3" include="y" />
+	    <field type="uint" name="m_field4" include="y" />
+	    <field type="int" name="m_field5" include="y" />
         </AnimKitBoneSet>
         <AnimKitBoneSetAlias>
             <include>Y</include>
@@ -152,11 +161,14 @@
             <field type="bigint" name="col1" include="y" />
         </AnimReplacementSet>
         <AnimationData>
+	    <index>
+	      <primary>newField0</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_AnimationData</tablename>
             <fieldcount>6</fieldcount>
-            <field type="bigint" name="col0" include="y" />
-            <field type="text" name="col1" include="y" />
+	    <field type="int" name="newField0" include="y" />
+	    <field type="string" name="newField1" include="y" />
             <field type="bigint" name="col2" include="y" />
             <field type="bigint" name="col3" include="y" />
             <field type="bigint" name="col4" include="y" />
@@ -173,6 +185,9 @@
             <field type="bigint" name="col4" include="y" />
         </AreaAssignment>
         <AreaGroup>
+	    <index>
+	      <primary>col0</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_AreaGroup</tablename>
             <fieldcount>8</fieldcount>
@@ -186,10 +201,13 @@
             <field type="bigint" name="col7" include="y" />
         </AreaGroup>
         <AreaPOI>
+	    <index>
+	      <primary>id</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_AreaPOI</tablename>
             <fieldcount>22</fieldcount>
-            <field type="bigint" name="col0" include="y" />
+	    <field type="int" name="id" include="y" />
             <field type="bigint" name="col1" include="y" />
             <field type="bigint" name="col2" include="y" />
             <field type="bigint" name="col3" include="y" />
@@ -221,22 +239,25 @@
             <field type="bigint" name="col2" include="y" />
         </AreaPOISortedWorldState>
         <AreaTable>
+	    <index>
+	      <primary>id</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_AreaTable</tablename>
             <fieldcount>26</fieldcount>
-            <field type="bigint" name="col0" include="y" />
-            <field type="bigint" name="col1" include="y" />
-            <field type="bigint" name="col2" include="y" />
-            <field type="bigint" name="col3" include="y" />
-            <field type="float" name="col4" include="y" />
+	    <field type="int" name="id" include="y" />
+	    <field type="int" name="map" include="y" />
+	    <field type="int" name="zone" include="y" />
+	    <field type="int" name="exploreFlag" include="y" />
+	    <field type="uint" name="flags" include="y" />
             <field type="bigint" name="col5" include="y" />
             <field type="bigint" name="col6" include="y" />
             <field type="bigint" name="col7" include="y" />
             <field type="bigint" name="col8" include="y" />
             <field type="bigint" name="col9" include="y" />
             <field type="bigint" name="col10" include="y" />
-            <field type="text" name="col11" include="y" />
-            <field type="bigint" name="col12" include="y" />
+	    <field type="string" name="name" include="y" />
+	    <field type="int" name="team" include="y" />
             <field type="bigint" name="col13" include="y" />
             <field type="bigint" name="col14" include="y" />
             <field type="bigint" name="col15" include="y" />
@@ -252,14 +273,17 @@
             <field type="bigint" name="col25" include="y" />
         </AreaTable>
         <AreaTrigger>
+	    <index>
+	      <primary>m_id</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_AreaTrigger</tablename>
             <fieldcount>13</fieldcount>
-            <field type="bigint" name="col0" include="y" />
-            <field type="bigint" name="col1" include="y" />
-            <field type="float" name="col2" include="y" />
-            <field type="float" name="col3" include="y" />
-            <field type="float" name="col4" include="y" />
+	    <field type="int" name="m_id" include="y" />
+	    <field type="int" name="m_mapId" include="y" />
+	    <field type="float" name="m_posX" include="y" />
+	    <field type="float" name="m_posY" include="y" />
+	    <field type="float" name="m_posZ" include="y" />
             <field type="bigint" name="col5" include="y" />
             <field type="bigint" name="col6" include="y" />
             <field type="bigint" name="col7" include="y" />
@@ -344,10 +368,13 @@
             <field type="bigint" name="col7" include="y" />
         </BarberShopStyle>
         <BattlemasterList>
+	    <index>
+	      <primary>m_id</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_BattlemasterList</tablename>
             <fieldcount>20</fieldcount>
-            <field type="bigint" name="col0" include="y" />
+	    <field type="int" name="m_id" include="y" />
             <field type="bigint" name="col1" include="y" />
             <field type="bigint" name="col2" include="y" />
             <field type="bigint" name="col3" include="y" />
@@ -369,6 +396,9 @@
             <field type="bigint" name="col19" include="y" />
         </BattlemasterList>
         <CameraMode>
+	    <index>
+	      <primary>col0</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_CameraMode</tablename>
             <fieldcount>17</fieldcount>
@@ -591,6 +621,9 @@
             <field type="bigint" name="col2" include="y" />
         </ChatProfanity>
         <ChrClasses>
+	    <index>
+	      <primary>field0</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_ChrClasses</tablename>
             <fieldcount>14</fieldcount>
@@ -872,36 +905,45 @@
             <field type="bigint" name="col8" include="y" />
         </CreatureSpellData>
         <CreatureType>
+	    <index>
+	      <primary>m_id</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_CreatureType</tablename>
             <fieldcount>3</fieldcount>
-            <field type="bigint" name="col0" include="y" />
-            <field type="text" name="col1" include="y" />
-            <field type="bigint" name="col2" include="y" />
+	    <field type="int" name="m_id" include="y" />
+	    <field type="string" name="m_name" include="y" />
+	    <field type="int" name="m_unk1" include="y" />
         </CreatureType>
         <CurrencyCategory>
+	    <index>
+	      <primary>m_category</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_CurrencyCategory</tablename>
             <fieldcount>3</fieldcount>
-            <field type="bigint" name="col0" include="y" />
-            <field type="bigint" name="col1" include="y" />
-            <field type="text" name="col2" include="y" />
+	    <field type="uint" name="m_category" include="y" />
+	    <field type="uint" name="m_unk1" include="y" />
+	    <field type="string" name="m_name" include="y" />
         </CurrencyCategory>
         <CurrencyTypes>
+	    <index>
+	      <primary>m_id</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_CurrencyTypes</tablename>
             <fieldcount>11</fieldcount>
-            <field type="bigint" name="col0" include="y" />
-            <field type="bigint" name="col1" include="y" />
-            <field type="text" name="col2" include="y" />
-            <field type="text" name="col3" include="y" />
+	    <field type="int" name="m_id" include="y" />
+	    <field type="int" name="m_category" include="y" />
+	    <field type="string" name="m_name" include="y" />
+	    <field type="string" name="m_iconName" include="y" />
             <field type="text" name="col4" include="y" />
             <field type="bigint" name="col5" include="y" />
             <field type="bigint" name="col6" include="y" />
             <field type="bigint" name="col7" include="y" />
             <field type="bigint" name="col8" include="y" />
             <field type="bigint" name="col9" include="y" />
-            <field type="text" name="col10" include="y" />
+	    <field type="string" name="m_desc" include="y" />
         </CurrencyTypes>
         <DanceMoves>
             <include>Y</include>
@@ -1900,32 +1942,32 @@
             <include>Y</include>
             <tablename>dbc_ItemExtendedCost</tablename>
             <fieldcount>31</fieldcount>
-            <field type="bigint" name="col0" include="y" />
-            <field type="bigint" name="col1" include="y" />
-            <field type="bigint" name="col2" include="y" />
-            <field type="bigint" name="col3" include="y" />
-            <field type="bigint" name="col4" include="y" />
-            <field type="bigint" name="col5" include="y" />
-            <field type="bigint" name="col6" include="y" />
-            <field type="bigint" name="col7" include="y" />
-            <field type="bigint" name="col8" include="y" />
-            <field type="bigint" name="col9" include="y" />
-            <field type="bigint" name="col10" include="y" />
-            <field type="bigint" name="col11" include="y" />
-            <field type="bigint" name="col12" include="y" />
-            <field type="bigint" name="col13" include="y" />
-            <field type="bigint" name="col14" include="y" />
+	    <field type="int" name="Id" include="y" />
+	    <field type="int" name="field1" include="y" />
+	    <field type="int" name="field2" include="y" />
+	    <field type="int" name="field3" include="y" />
+	    <field type="int" name="ItemId1" include="y" />
+	    <field type="int" name="ItemId2" include="y" />
+	    <field type="int" name="ItemId3" include="y" />
+	    <field type="int" name="ItemId4" include="y" />
+	    <field type="int" name="ItemId5" include="y" />
+	    <field type="int" name="ItemCount1" include="y" />
+	    <field type="int" name="ItemCount2" include="y" />
+	    <field type="int" name="ItemCount3" include="y" />
+	    <field type="int" name="ItemCount4" include="y" />
+	    <field type="int" name="ItemCount5" include="y" />
+	    <field type="int" name="Arena" include="y" />
             <field type="bigint" name="col15" include="y" />
-            <field type="bigint" name="col16" include="y" />
-            <field type="bigint" name="col17" include="y" />
-            <field type="bigint" name="col18" include="y" />
-            <field type="bigint" name="col19" include="y" />
-            <field type="bigint" name="col20" include="y" />
-            <field type="bigint" name="col21" include="y" />
-            <field type="bigint" name="col22" include="y" />
-            <field type="bigint" name="col23" include="y" />
-            <field type="bigint" name="col24" include="y" />
-            <field type="bigint" name="col25" include="y" />
+	    <field type="int" name="CurrencyId1" include="y" />
+	    <field type="int" name="CurrencyId2" include="y" />
+	    <field type="int" name="CurrencyId3" include="y" />
+	    <field type="int" name="CurrencyId4" include="y" />
+	    <field type="int" name="CurrencyId5" include="y" />
+	    <field type="int" name="CurrencyCount1" include="y" />
+	    <field type="int" name="CurrencyCount2" include="y" />
+	    <field type="int" name="CurrencyCount3" include="y" />
+	    <field type="int" name="CurrencyCount4" include="y" />
+	    <field type="int" name="CurrencyCount5" include="y" />
             <field type="bigint" name="col26" include="y" />
             <field type="bigint" name="col27" include="y" />
             <field type="bigint" name="col28" include="y" />
@@ -2556,41 +2598,44 @@
             <field type="text" name="col2" include="y" />
         </MailTemplate>
         <Map>
+	    <index>
+	      <primary>id</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_Map</tablename>
             <fieldcount>20</fieldcount>
-            <field type="bigint" name="col0" include="y" />
-            <field type="text" name="col1" include="y" />
-            <field type="bigint" name="col2" include="y" />
-            <field type="bigint" name="col3" include="y" />
-            <field type="bigint" name="col4" include="y" />
-            <field type="bigint" name="col5" include="y" />
-            <field type="text" name="col6" include="y" />
-            <field type="bigint" name="col7" include="y" />
-            <field type="text" name="col8" include="y" />
-            <field type="text" name="col9" include="y" />
-            <field type="bigint" name="col10" include="y" />
-            <field type="float" name="col11" include="y" />
-            <field type="bigint" name="col12" include="y" />
-            <field type="float" name="col13" include="y" />
-            <field type="float" name="col14" include="y" />
-            <field type="bigint" name="col15" include="y" />
-            <field type="bigint" name="col16" include="y" />
-            <field type="bigint" name="col17" include="y" />
-            <field type="bigint" name="col18" include="y" />
-            <field type="bigint" name="col19" include="y" />
+	    <field type="int" name="id" include="y" />
+	    <field type="string" name="iname" include="y" />
+	    <field type="int" name="type" include="y" />
+	    <field type="int" name="flags" include="y" />
+	    <field type="int" name="unk4" include="y" />
+	    <field type="int" name="isPvp" include="y" />
+	    <field type="string" name="name" include="y" />
+	    <field type="int" name="linkedZone" include="y" />
+	    <field type="string" name="hordeIntro" include="y" />
+	    <field type="string" name="allianceIntro" include="y" />
+	    <field type="int" name="multimap_id" include="y" />
+	    <field type="float" name="BattlefieldMapIconScale" include="y" />
+	    <field type="int" name="ghost_entrance_map" include="y" />
+	    <field type="float" name="ghost_entrance_x" include="y" />
+	    <field type="float" name="ghost_entrance_y" include="y" />
+	    <field type="int" name="timeOfDayOverride" include="y" />
+	    <field type="int" name="addon" include="y" />
+	    <field type="int" name="unkTime" include="y" />
+	    <field type="int" name="maxPlayers" include="y" />
+	    <field type="int" name="unk400" include="y" />
         </Map>
         <MapDifficulty>
             <include>Y</include>
             <tablename>dbc_MapDifficulty</tablename>
             <fieldcount>7</fieldcount>
-            <field type="bigint" name="col0" include="y" />
-            <field type="bigint" name="col1" include="y" />
-            <field type="bigint" name="col2" include="y" />
-            <field type="text" name="col3" include="y" />
-            <field type="bigint" name="col4" include="y" />
-            <field type="bigint" name="col5" include="y" />
-            <field type="text" name="col6" include="y" />
+	    <field type="int" name="m_id" include="y" />
+	    <field type="int" name="m_mapId" include="y" />
+	    <field type="int" name="m_difficulty" include="y" />
+	    <field type="string" name="m_requirement" include="y" />
+	    <field type="int" name="m_resetTime" include="y" />
+	    <field type="int" name="m_maxPlayers" include="y" />
+	    <field type="string" name="m_difficultyString" include="y" />
         </MapDifficulty>
         <Material>
             <include>Y</include>
@@ -4783,6 +4828,9 @@
             <field type="bigint" name="col8" include="y" />
         </WorldStateZoneSounds>
         <WowError_Strings>
+	    <index>
+	      <primary>field0</primary>
+	    </index>
             <include>Y</include>
             <tablename>dbc_WowError_Strings</tablename>
             <fieldcount>3</fieldcount>

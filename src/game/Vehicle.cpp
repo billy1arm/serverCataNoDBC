@@ -23,10 +23,11 @@
  * @file Vehicle.cpp
  * This file contains the code needed for CMaNGOS to support vehicles
  * Currently implemented
- * - TODO Board
- * - TODO Unboard
- * - TODO Switch
+ * - Board to board a passenger onto a vehicle (includes checks)
+ * - Unboard to unboard a passenger from the vehicle
+ * - SwitchSeat to switch to another seat of the same vehicle
  * - CanBoard to check if a passenger can board a vehicle
+ * - Internal helper to set the controlling and spells for a vehicle's seat
  * - Internal helper to control the available seats of a vehicle
  */
 
@@ -88,11 +89,69 @@ void VehicleInfo::Board(Unit* passenger, uint8 seat)
 {
     MANGOS_ASSERT(passenger);
 
-    DEBUG_LOG("VehicleInfo::Board: Try to board passenger %s to seat %u", passenger->GetObjectGuid().GetString().c_str(), seat);
+    DEBUG_LOG("VehicleInfo::Board: Try to board passenger %s to seat %u", passenger->GetGuidStr().c_str(), seat);
+
+    // This check is also called in Spell::CheckCast()
+    if (!CanBoard(passenger))
+        return;
+
+    // Use the planned seat only if the seat is valid, possible to choose and empty
+    if (!IsSeatAvailableFor(passenger, seat))
+        if (!GetUsableSeatFor(passenger, seat))
+            return;
+
+    VehicleSeatEntry const* seatEntry = GetSeatEntry(seat);
+    MANGOS_ASSERT(seatEntry);
+
+    // ToDo: Unboard passenger from a MOTransport when they are properly implemented
+    /*if (TransportInfo* transportInfo = passenger->GetTransportInfo())
+    {
+        WorldObject* transporter = transportInfo->GetTransport();
+
+        // Must be a MO transporter
+        MANGOS_ASSERT(transporter->GetObjectGuid().IsMOTransport());
+
+        ((Transport*)transporter)->UnBoardPassenger(passenger);
+    }*/
+
+    DEBUG_LOG("VehicleInfo::Board: Board passenger: %s to seat %u", passenger->GetGuidStr().c_str(), seat);
+
+    // Calculate passengers local position
+    float lx, ly, lz, lo;
+    CalculateBoardingPositionOf(passenger->GetPositionX(), passenger->GetPositionY(), passenger->GetPositionZ(), passenger->GetOrientation(), lx, ly, lz, lo);
+
+    BoardPassenger(passenger, lx, ly, lz, lo, seat);        // Use TransportBase to store the passenger
+
+    // Set data for createobject packets
+    passenger->m_movementInfo.GetTransportGuid();
+    passenger->m_movementInfo.SetTransportData(m_owner->GetObjectGuid(), lx, ly, lz, lo, 0, seat);
+
+    if (passenger->GetTypeId() == TYPEID_PLAYER)
+    {
+        Player* pPlayer = (Player*)passenger;
+        pPlayer->RemovePet(PET_SAVE_AS_CURRENT);
+
+        WorldPacket data(SMSG_ON_CANCEL_EXPECTED_RIDE_VEHICLE_AURA);
+        pPlayer->GetSession()->SendPacket(&data);
+
+        // SMSG_BREAK_TARGET (?)
+    }
+
+    if (!passenger->IsRooted())
+        passenger->SetRoot(true);
+
+    Movement::MoveSplineInit init(*passenger);
+    init.MoveTo(0.0f, 0.0f, 0.0f);                          // ToDo: Set correct local coords
+    init.SetFacing(0.0f);                                   // local orientation ? ToDo: Set proper orientation!
+    init.SetBoardVehicle();
+    init.Launch();
+
+    // Apply passenger modifications
+    ApplySeatMods(passenger, seatEntry->m_flags);
 }
 
 /**
- * This function will switch the seat of a passenger
+ * This function will switch the seat of a passenger on the same vehicle
  *
  * @param passenger MUST be provided. This Unit will change its seat on the vehicle
  * @param seat      Seat to which the passenger will be switched
@@ -100,6 +159,50 @@ void VehicleInfo::Board(Unit* passenger, uint8 seat)
 void VehicleInfo::SwitchSeat(Unit* passenger, uint8 seat)
 {
     MANGOS_ASSERT(passenger);
+
+    DEBUG_LOG("VehicleInfo::SwitchSeat: passenger: %s try to switch to seat %u", passenger->GetGuidStr().c_str(), seat);
+
+    // Switching seats is not possible
+    if (m_vehicleEntry->m_flags & VEHICLE_FLAG_DISABLE_SWITCH)
+        return;
+
+    PassengerMap::const_iterator itr = m_passengers.find(passenger);
+    MANGOS_ASSERT(itr != m_passengers.end());
+
+    // We are already boarded to this seat
+    if (itr->second->GetTransportSeat() == seat)
+        return;
+
+    // Check if it's a valid seat
+    if (!IsSeatAvailableFor(passenger, seat))
+        return;
+
+    VehicleSeatEntry const* seatEntry = GetSeatEntry(itr->second->GetTransportSeat());
+    MANGOS_ASSERT(seatEntry);
+
+    // Switching seats is only allowed if this flag is set
+    if (~seatEntry->m_flags & SEAT_FLAG_CAN_SWITCH)
+        return;
+
+    // Remove passenger modifications of the old seat
+    RemoveSeatMods(passenger, seatEntry->m_flags);
+
+    // Set to new seat
+    itr->second->SetTransportSeat(seat);
+
+    Movement::MoveSplineInit init(*passenger);
+    init.MoveTo(0.0f, 0.0f, 0.0f);                          // ToDo: Set correct local coords
+    //if (oldorientation != neworientation) (?)
+    //init.SetFacing(0.0f);                                 // local orientation ? ToDo: Set proper orientation!
+    // It seems that Seat switching is sent without SplineFlag BoardVehicle
+    init.Launch();
+
+    // Get seatEntry of new seat
+    seatEntry = GetSeatEntry(seat);
+    MANGOS_ASSERT(seatEntry);
+
+    // Apply passenger modifications of the new seat
+    ApplySeatMods(passenger, seatEntry->m_flags);
 }
 
 /**
@@ -113,7 +216,42 @@ void VehicleInfo::UnBoard(Unit* passenger, bool changeVehicle)
 {
     MANGOS_ASSERT(passenger);
 
-    DEBUG_LOG("VehicleInfo::Unboard: passenger: %s", passenger->GetObjectGuid().GetString().c_str());
+    DEBUG_LOG("VehicleInfo::Unboard: passenger: %s", passenger->GetGuidStr().c_str());
+
+    PassengerMap::const_iterator itr = m_passengers.find(passenger);
+    MANGOS_ASSERT(itr != m_passengers.end());
+
+    VehicleSeatEntry const* seatEntry = GetSeatEntry(itr->second->GetTransportSeat());
+    MANGOS_ASSERT(seatEntry);
+
+    UnBoardPassenger(passenger);                            // Use TransportBase to remove the passenger from storage list
+
+    if (!changeVehicle)                                     // Send expected unboarding packages
+    {
+        // Update movementInfo
+        passenger->m_movementInfo.GetTransportGuid();
+        passenger->m_movementInfo.ClearTransportData();
+
+        if (passenger->GetTypeId() == TYPEID_PLAYER)
+        {
+            Player* pPlayer = (Player*)passenger;
+            pPlayer->ResummonPetTemporaryUnSummonedIfAny();
+
+            // SMSG_PET_DISMISS_SOUND (?)
+        }
+
+        if (passenger->IsRooted())
+            passenger->SetRoot(false);
+
+        Movement::MoveSplineInit init(*passenger);
+        // ToDo: Set proper unboard coordinates
+        init.MoveTo(m_owner->GetPositionX(), m_owner->GetPositionY(), m_owner->GetPositionZ());
+        init.SetExitVehicle();
+        init.Launch();
+    }
+
+    // Remove passenger modifications
+    RemoveSeatMods(passenger, seatEntry->m_flags);
 }
 
 /**
@@ -129,6 +267,20 @@ bool VehicleInfo::CanBoard(Unit* passenger) const
     // Passenger is this vehicle
     if (passenger == m_owner)
         return false;
+
+    // Passenger is already on this vehicle (in this case switching seats is required)
+    if (passenger->IsBoarded() && passenger->GetTransportInfo()->GetTransport() == m_owner)
+        return false;
+
+    // Prevent circular boarding m_owner must not be boarded on passenger
+    WorldObject* lastVehicle = m_owner;
+    while (lastVehicle->IsBoarded() && lastVehicle->GetTransportInfo()->IsOnVehicle())
+    {
+        lastVehicle = lastVehicle->GetTransportInfo()->GetTransport();
+        if (lastVehicle == passenger)
+            return false;
+    }
+
 
     // Check if we have at least one empty seat
     if (!GetEmptySeats())
@@ -221,11 +373,93 @@ bool VehicleInfo:: IsUsableSeatForPlayer(uint32 seatFlags) const
 /// Add control and such modifiers to a passenger if required
 void VehicleInfo::ApplySeatMods(Unit* passenger, uint32 seatFlags)
 {
+    Unit* pVehicle = (Unit*)m_owner;                        // Vehicles are alawys Unit
+
+    if (passenger->GetTypeId() == TYPEID_PLAYER)
+    {
+        Player* pPlayer = (Player*)passenger;
+
+        if (seatFlags & SEAT_FLAG_CAN_CONTROL)
+        {
+            pPlayer->GetCamera().SetView(pVehicle);
+
+            pPlayer->SetCharm(pVehicle);
+            pVehicle->SetCharmerGuid(pPlayer->GetObjectGuid());
+
+            pVehicle->addUnitState(UNIT_STAT_CONTROLLED);
+            pVehicle->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
+
+            pPlayer->SetClientControl(pVehicle, 1);
+            pPlayer->SetMover(pVehicle);
+
+            // Unconfirmed - default speed handling
+            if (pVehicle->GetTypeId() == TYPEID_UNIT)
+            {
+                if (!pPlayer->IsWalking() && pVehicle->IsWalking())
+                {
+                    ((Creature*)pVehicle)->SetWalk(false);
+                }
+                else if (pPlayer->IsWalking() && !pVehicle->IsWalking())
+                {
+                    ((Creature*)pVehicle)->SetWalk(true);
+                }
+            }
+        }
+
+        if (seatFlags & (SEAT_FLAG_USABLE | SEAT_FLAG_CAN_CAST))
+        {
+            CharmInfo* charmInfo = pVehicle->InitCharmInfo(pVehicle);
+            // ToDo: Send vehicle actionbar spells
+            charmInfo->InitEmptyActionBar();
+
+            pPlayer->PossessSpellInitialize();
+        }
+    }
+    else if (passenger->GetTypeId() == TYPEID_UNIT)
+    {
+        if (seatFlags & SEAT_FLAG_CAN_CONTROL)
+        {
+            passenger->SetCharm(pVehicle);
+            pVehicle->SetCharmerGuid(passenger->GetObjectGuid());
+        }
+    }
 }
 
 /// Remove control and such modifiers to a passenger if they were added
 void VehicleInfo::RemoveSeatMods(Unit* passenger, uint32 seatFlags)
 {
+    Unit* pVehicle = (Unit*)m_owner;
+
+    if (passenger->GetTypeId() == TYPEID_PLAYER)
+    {
+        Player* pPlayer = (Player*)passenger;
+
+        if (seatFlags & SEAT_FLAG_CAN_CONTROL)
+        {
+            pPlayer->SetCharm(NULL);
+            pVehicle->SetCharmerGuid(ObjectGuid());
+
+            pPlayer->SetClientControl(pVehicle, 0);
+            pPlayer->SetMover(NULL);
+
+            pVehicle->clearUnitState(UNIT_STAT_CONTROLLED);
+            pVehicle->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
+
+            // must be called after movement control unapplying
+            pPlayer->GetCamera().ResetView();
+        }
+
+        if (seatFlags & (SEAT_FLAG_USABLE | SEAT_FLAG_CAN_CAST))
+            pPlayer->RemovePetActionBar();
+    }
+    else if (passenger->GetTypeId() == TYPEID_UNIT)
+    {
+        if (seatFlags & SEAT_FLAG_CAN_CONTROL)
+        {
+            passenger->SetCharm(NULL);
+            pVehicle->SetCharmerGuid(ObjectGuid());
+        }
+    }
 }
 
 /*! @} */

@@ -8501,29 +8501,16 @@ void Aura::HandleAuraControlVehicle(bool apply, bool Real)
     if (!target->IsVehicle())
         return;
 
-    // TODO: Check for free seat
-
     Unit* caster = GetCaster();
     if (!caster)
         return;
 
     if (apply)
     {
-        if (caster->GetTypeId() == TYPEID_PLAYER)
-            ((Player*)caster)->RemovePet(PET_SAVE_AS_CURRENT);
-
-        // caster->EnterVehicle(target);
+        target->GetVehicleInfo()->Board(caster, GetSpellProto()->CalculateSimpleValue(m_effIndex) - 1);
     }
     else
-    {
-        // some SPELL_AURA_CONTROL_VEHICLE auras have a dummy effect on the player - remove them
-        caster->RemoveAurasDueToSpell(GetId());
-
-        // caster->ExitVehicle();
-
-        if (caster->GetTypeId() == TYPEID_PLAYER)
-            ((Player*)caster)->ResummonPetTemporaryUnSummonedIfAny();
-    }
+        target->GetVehicleInfo()->UnBoard(caster, m_removeMode == AURA_REMOVE_BY_TRACKING);
 }
 
 void Aura::HandleAuraAddMechanicAbilities(bool apply, bool Real)
@@ -8809,7 +8796,7 @@ SpellAuraHolder::SpellAuraHolder(SpellEntry const* spellproto, Unit* target, Wor
     m_applyTime      = time(NULL);
     m_isPassive      = IsPassiveSpell(spellproto);
     m_isDeathPersist = IsDeathPersistentSpell(spellproto);
-    m_isSingleTarget = IsSingleTargetSpell(spellproto);
+    m_trackedAuraType= IsSingleTargetSpell(spellproto) ? TRACK_AURA_TYPE_SINGLE_TARGET : IsSpellHaveAura(spellproto, SPELL_AURA_CONTROL_VEHICLE) ? TRACK_AURA_TYPE_CONTROL_VEHICLE : TRACK_AURA_TYPE_NOT_TRACKED;
     m_procCharges = m_spellProto->GetProcCharges();
 
     m_isRemovedOnShapeLost = (GetCasterGuid() == m_target->GetObjectGuid() &&
@@ -10194,13 +10181,38 @@ bool SpellAuraHolder::IsEmptyHolder() const
     return true;
 }
 
-void SpellAuraHolder::UnregisterSingleCastHolder()
+void SpellAuraHolder::UnregisterAndCleanupTrackedAuras()
 {
-    if (IsSingleTarget())
+    TrackedAuraType trackedType = GetTrackedAuraType();
+    if (!trackedType)
+        return;
+
+    if (trackedType == TRACK_AURA_TYPE_SINGLE_TARGET)
     {
         if (Unit* caster = GetCaster())
-            caster->GetSingleCastSpellTargets().erase(GetSpellProto());
-
-        m_isSingleTarget = false;
+            caster->GetTrackedAuraTargets(trackedType).erase(GetSpellProto());
     }
+    else if (trackedType == TRACK_AURA_TYPE_CONTROL_VEHICLE)
+    {
+        Unit* caster = GetCaster();
+        if (caster && IsSpellHaveAura(GetSpellProto(), SPELL_AURA_CONTROL_VEHICLE, GetAuraFlags()))
+        {
+            caster->GetTrackedAuraTargets(trackedType).erase(GetSpellProto());
+            caster->RemoveAurasDueToSpell(GetSpellProto()->Id);
+        }
+        else if (caster)
+        {
+            Unit::TrackedAuraTargetMap scTarget = caster->GetTrackedAuraTargets(trackedType);
+            Unit::TrackedAuraTargetMap::iterator find = scTarget.find(GetSpellProto());
+            if (find != scTarget.end())
+            {
+                ObjectGuid vehicleGuid = find->second;
+                scTarget.erase(find);
+                if (Unit* vehicle = caster->GetMap()->GetUnit(vehicleGuid))
+                    vehicle->RemoveAurasDueToSpell(GetSpellProto()->Id, NULL, AURA_REMOVE_BY_DEFAULT);
+            }
+        }
+    }
+
+    m_trackedAuraType = TRACK_AURA_TYPE_NOT_TRACKED;
 }
