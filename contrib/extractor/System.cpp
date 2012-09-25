@@ -104,7 +104,7 @@ int MIN_SUPPORTED_BUILD = 15050;                           // code expect mpq fi
 //TODO: Move this into the XML file
 int EXPANSION_COUNT = 4;
 //TODO: Move this into the XML file
-int WORLD_COUNT = 2;
+int WORLD_COUNT = 1;
 
 class Reader
 {
@@ -1532,18 +1532,33 @@ void ReadAreaTableDBC(int const locale)
 void ReadLiquidTypeTableDBC(int const locale)
 {
     HANDLE localeFile;
+    HANDLE localeFile2;
     char localMPQ[512];
-    sprintf(localMPQ, "%s/Data/%s/locale-%s.MPQ", input_path, langs[locale], langs[locale]);
+    char localMPQ2[512];
+
+    sprintf(localMPQ, "%s/Data/misc.MPQ", input_path);//, langs[locale], langs[locale]);
+    if (FileExists(localMPQ)==false)
+    {   // Use misc.mpq
+        sprintf(localMPQ, "%s/Data/%s/locale-%s.MPQ", input_path, langs[locale], langs[locale]);
+    }
+
     if (!SFileOpenArchive(localMPQ, 0, MPQ_OPEN_READ_ONLY, &localeFile))
+    {
         exit(1);
+    }
+
+
 
     printf("Read LiquidType.dbc file...");
 
     HANDLE dbcFile;
     if (!SFileOpenFileEx(localeFile, "DBFilesClient\\LiquidType.dbc", SFILE_OPEN_PATCHED_FILE, &dbcFile))
     {
-        printf("Fatal error: Cannot find LiquidType.dbc in archive!\n");
-        exit(1);
+        if (!SFileOpenFileEx(localeFile2, "DBFilesClient\\LiquidType.dbc", SFILE_OPEN_PATCHED_FILE, &dbcFile))
+        {
+            printf("Fatal error: Cannot find LiquidType.dbc in archive!\n");
+            exit(1);
+        }
     }
 
     DBCFile dbc(dbcFile);
@@ -2413,16 +2428,27 @@ void AppendPatchMPQFilesToList(char const* subdir, char const* suffix, char cons
 void LoadLocaleMPQFiles(int const locale)
 {
     char filename[512];
+    HANDLE localeMpqHandle;
 
     // first base old version of dbc files
     sprintf(filename,"%s/Data/%s/locale-%s.MPQ", input_path, langs[locale], langs[locale]);
-
-    HANDLE localeMpqHandle;
-
-    if (!OpenArchive(filename, &localeMpqHandle))
+    if (FileExists(filename)==true)
     {
-        printf("Error open archive: %s\n\n", filename);
-        return;
+        if (!OpenArchive(filename, &localeMpqHandle))
+        {
+            printf("Error open archive: %s\n\n", filename);
+            return;
+        }
+    }
+
+    sprintf(filename,"%s/Data/misc.MPQ", input_path);//, langs[locale], langs[locale]);
+    if (FileExists(filename)==true)
+    {
+        if (!OpenArchive(filename, &localeMpqHandle))
+        {
+            printf("Error open archive: %s\n\n", filename);
+            return;
+        }
     }
 
     // prepare sorted list patches in locale dir and Data root
@@ -2443,6 +2469,8 @@ void LoadLocaleMPQFiles(int const locale)
         if (!SFileOpenPatchArchive(localeMpqHandle, filename, itr->second.second ? itr->second.second : "", 0))
             printf("Error open patch archive: %s\n\n", filename);
     }
+
+
 }
 
 void LoadBaseMPQFiles()
@@ -2468,6 +2496,18 @@ void LoadBaseMPQFiles()
         sprintf(filename, "%s/Data/Expansion%i.MPQ", input_path, i);
         printf("%s\n", filename);
 
+        if (!OpenArchive(filename, &worldMpqHandle))
+        {
+            printf("Error open archive: %s\n\n", filename);
+            return;
+        }
+    }
+
+    //Add Misc.MPQ
+    sprintf(filename, "%s/Data/misc.MPQ", input_path);//, (i == 2 ? "2" : ""));
+    if (FileExists(filename)==true)
+    {
+        printf("%s\n", filename);
         if (!OpenArchive(filename, &worldMpqHandle))
         {
             printf("Error open archive: %s\n\n", filename);
