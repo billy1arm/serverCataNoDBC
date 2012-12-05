@@ -225,10 +225,6 @@ bool Reader::LoadBinary(char *fileName, string fileFormat, int _recordSize)
         return false;
     }
 
-//    printf("Loading file: '%s'.\n", fileName);
-//    printf("Loading file '%s' ", fileName);
-//    cout << "Loading file '" << fileName << "' ";
-
     fseek(input, 0, SEEK_END);
     long fileSize = ftell(input);
 
@@ -368,22 +364,8 @@ bool Reader::LoadBinary(char *fileName, string fileFormat, int _recordSize)
         else
             _tempFileType = "DB2";
 
-//        if (fileFormat.size())
-//        {
-//            if (LoadADB_DBC_DB2(fileName, fileFormat, dataData, _recordSize))
-////                printf("%s file loaded: '%s'.\n", _tempFileType, fileName);
-//                cout << _tempFileType << " file '" << fileName << " loaded: ";
-//            else
-//                return false;
-//        }
-//        // Predicted
-//        else
-//        {
-            if (!LoadADB_DBC_DB2_predicted(fileName, dataData))
-//                printf("Predicted: %s file loaded: '%s'.\n", _tempFileType, fileName);
-//            else
-                return false;
-//        }
+        if (!LoadADB_DBC_DB2_predicted(fileName, dataData))
+            return false;
     }
 
     // por si las dudas
@@ -513,70 +495,6 @@ bool Reader::LoadADB_DBC_DB2_predicted(char *fileName, unsigned char *data)
 
     return true;
 }
-
-//bool Reader::LoadADB_DBC_DB2(char *fileName, string fileFormat, unsigned char *data, int _recordSize)
-//{
-//    if (fileFormat.size() != totalFields)
-//    {
-//        printf("ERROR: '%s': Incorrect field format size. Expected '%i' not '%i' fields.\n", fileName, totalFields, fileFormat.size());
-//        return false;
-//    }
-//
-//    if (_recordSize != recordSize)
-//    {
-//        printf("ERROR: '%s': Incorrect field format structure, Expected '%i' not %i bytes per record.\n", fileName, recordSize, _recordSize);
-//        return false;
-//    }
-//
-//    // Esta funcion es necesaria, de lo contrario ocasionara crash
-//    InitializeBoolFielTypes(totalFields);
-//
-//    // iniciando el tipo de dato
-//    for (int currentField = 0; currentField < totalFields; currentField++)
-//    {
-//        switch (fileFormat[currentField])
-//        {
-//            case 'b':    // byte
-//            case 'X':    // unk byte
-//                isByteField[currentField] = true;
-//                break;
-//            case 's':    // string
-//                isStringField[currentField] = true;
-//                break;
-//            case 'd':    // int
-//            case 'n':    // int
-//            case 'x':    // unk int
-//            case 'i':    // int
-//                isIntField[currentField] = true;
-//                break;
-//            case 'f':    // float
-//                isFloatField[currentField] = true;
-//                break;
-//        }
-//    }
-//
-//    int offset = 0;    // contador global usado para saber en que posicion debe leer el siguiente registro
-//
-//    for (int currentRecord = 0; currentRecord < totalRecords; currentRecord++)
-//    {
-//        vector<unsigned char *> fieldData;
-//        for (int currentField = 0; currentField < totalFields; currentField++)
-//        {
-//            int fieldSize = 0;
-//
-//            if (isByteField[currentField])
-//                fieldSize = 1;
-//            else
-//                fieldSize = 4;
-//
-//            fieldData.push_back(data + offset);
-//            offset += fieldSize;
-//        }
-//        recordData.push_back(fieldData);
-//    }
-//
-//    return true;
-//}
 
 bool Reader::LoadWDB(char *fileName, string format, unsigned char *data, int dataSize)
 {
@@ -866,104 +784,6 @@ struct FileStructure
 
 map<string, FileStructure> mFileNames, mTempFileNames;
 bool isConfig = true;
-
-//void AddFileStructureToList()
-//{
-//    char *filename = "WoWParserReader.cfg";
-//    ifstream input(filename, ifstream::in);
-//    if (!input.is_open())
-//    {
-//        printf("Warning: Can't open configuration file '%s' for field structure.\nOnly Byte Fields can't be predicted.\n\n", filename);
-//        printf("Adding all DBC, DB2, ADB files in current directory (recursive) to list.\n");
-//        isConfig = false;
-//    }
-//    else
-//    {
-//        string Line = "";
-//        int countLine = 0;
-//        while (getline(input, Line))
-//        {
-//            countLine++;
-//            if (Line.empty() || Line[0] == ' ' || Line[0] == '#')
-//                continue;
-//
-//            int pos = Line.find('\t', 0);
-//            string tempFileName = Line.substr(0, pos);
-//            string tempFileStructure = "";
-//            int recordSize = 0;
-//            
-//            int isDirectory = tempFileName.rfind("/");
-//            if (isDirectory+1 == tempFileName.size())
-//            {
-//                printf("ERROR: %s is a directory not a file (skiping at line %i)\n", tempFileName.c_str(), countLine);
-//                continue;
-//            }
-//
-//            int plus = tempFileName.rfind("*.");
-//            if (plus != -1)
-//            {
-//                string plusFileName = tempFileName.substr(plus, tempFileName.size());
-//                string secondPlusFileName = plusFileName.substr(2, plusFileName.size());
-//                int secondplus = secondPlusFileName.find("*");
-//                int sizeplustFileName = plusFileName.size();
-//                if (sizeplustFileName < 3 || secondplus != -1)
-//                {
-//                    printf("Warning: Invalid use *.* or *. needs file extension, for example: *.dbc or ./dirname/*.dbc (ignoring at line %i).\n", countLine);
-//                    continue;
-//                }
-//            }
-//            else if (pos == -1 || ((pos != -1) && Line.substr(pos+1, Line.size()).empty()))
-//                printf("Warning: No structure found for file '%s' at line %i (Field types will be predicted).\n", Line.substr(0, (pos == -1) ? Line.size() : pos).c_str(), countLine);
-//            else if (pos != -1)
-//            {
-//                tempFileStructure = Line.substr(pos+1, Line.size());
-//            
-//                bool validStructure = true;
-//                for (unsigned int x = 0; x < tempFileStructure.size(); x++)
-//                {
-//                    switch(tempFileStructure[x])
-//                    {
-//                        case 'b':    // byte
-//                        case 'X':    // unk byte
-//                            recordSize += 1;
-//                            break;
-//                        case 's':    // string
-//                        case 'd':    // int
-//                        case 'n':    // int
-//                        case 'x':    // unk int
-//                        case 'i':    // int
-//                        case 'f':    // float
-//                            recordSize += 4;
-//                            break;
-//                        default:
-//                            printf("ERROR: Invalid structure character '%c' for file '%s' at line: %i (Skiping)\n", tempFileStructure[x], tempFileName.c_str(), countLine);
-//                            x = tempFileStructure.size();
-//                            validStructure = false;
-//                            break;
-//                    }
-//                }
-//
-//                if (!validStructure)
-//                    continue;
-//            }
-//
-//            map<string, FileStructure>::iterator it = mTempFileNames.find(tempFileName);
-//            if (it != mTempFileNames.end())
-//            {
-//                printf("WARNING: File name already exists in structure: %s at line: %i (Ignoring)\n", tempFileName.c_str(), countLine);
-//                continue;
-//            }
-//            else
-//            {
-//                FileStructure sFileStructure;
-//                sFileStructure.Structure = tempFileStructure;
-//                sFileStructure.recordSize = recordSize;
-//                mTempFileNames.insert(pair<string, FileStructure>(tempFileName, sFileStructure));
-//            }
-//        }
-//    }
-//}
-//
 
 void CreateDir( const std::string& Path )
 {
@@ -1546,8 +1366,6 @@ void ReadLiquidTypeTableDBC(int const locale)
     {
         exit(1);
     }
-
-
 
     printf("Read LiquidType.dbc file...");
 
@@ -2245,7 +2063,6 @@ void ExtractMapsFromMpq(uint32 build, const int locale)
     delete [] map_ids;
 }
 
-
 void ExtractDBCFiles(int locale, bool basicLocale, uint32& ClientVersion)
 {
     printf("Extracting dbc files...\n");
@@ -2314,7 +2131,6 @@ void ExtractDBCFiles(int locale, bool basicLocale, uint32& ClientVersion)
         }
     }
 
-
     for (std::set<std::string>::iterator iter = dbcfiles.begin(); iter != dbcfiles.end(); ++iter)
     {
         std::string filename = path;
@@ -2360,9 +2176,7 @@ void ExtractDBCFiles(int locale, bool basicLocale, uint32& ClientVersion)
         }
     }
 
-
     printf("Extracted %u DBC/DB2 files\n\n", count);
-
 }
 
 typedef std::pair<std::string /*full_filename*/, char const* /*locale_prefix*/> UpdatesPair;
@@ -2469,8 +2283,6 @@ void LoadLocaleMPQFiles(int const locale)
         if (!SFileOpenPatchArchive(localeMpqHandle, filename, itr->second.second ? itr->second.second : "", 0))
             printf("Error open patch archive: %s\n\n", filename);
     }
-
-
 }
 
 void LoadBaseMPQFiles()
