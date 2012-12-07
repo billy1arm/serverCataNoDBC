@@ -889,7 +889,7 @@ void Spell::AddUnitTarget(Unit* pVictim, SpellEffectIndex effIndex)
         return;
 
     // Check for effect immune skip if immuned
-    bool immuned = pVictim->IsImmuneToSpellEffect(m_spellInfo, effIndex);
+    bool immuned = pVictim->IsImmuneToSpellEffect(m_spellInfo, effIndex, pVictim == m_caster);
 
     if (pVictim->GetTypeId() == TYPEID_UNIT && ((Creature*)pVictim)->IsTotem() && (m_spellFlags & SPELL_FLAG_REDIRECTED))
         immuned = false;
@@ -1295,7 +1295,7 @@ void Spell::DoSpellHitOnUnit(Unit* unit, uint32 effectMask)
     // Recheck immune (only for delayed spells)
     if (m_spellInfo->speed && (
                 unit->IsImmunedToDamage(GetSpellSchoolMask(m_spellInfo)) ||
-                unit->IsImmuneToSpell(m_spellInfo)))
+                unit->IsImmuneToSpell(m_spellInfo, unit == realCaster)))
     {
         if (realCaster)
             realCaster->SendSpellMiss(unit, m_spellInfo->Id, SPELL_MISS_IMMUNE);
@@ -1706,6 +1706,8 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                 case 804:                                   // Explode Bug
                 case 23138:                                 // Gate of Shazzrah
                 case 28560:                                 // Summon Blizzard
+                case 30541:                                 // Blaze (Magtheridon)
+                case 30572:                                 // Quake (Magtheridon)
                 case 30769:                                 // Pick Red Riding Hood
                 case 30835:                                 // Infernal Relay
                 case 31347:                                 // Doom TODO: exclude top threat target from target selection
@@ -1718,6 +1720,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                 case 50988:                                 // Glare of the Tribunal (Halls of Stone)
                 case 51146:                                 // Searching Gaze (Halls Of Stone)
                 case 52438:                                 // Summon Skittering Swarmer (Azjol Nerub,  Krik'thir the Gatewatcher)
+                case 52449:                                 // Summon Skittering Infector (Azjol Nerub,  Krik'thir the Gatewatcher)
                 case 53457:                                 // Impale (Azjol Nerub,  Anub'arak)
                 case 54148:                                 // Ritual of the Sword (Utgarde Pinnacle, Svala)
                 case 55479:                                 // Forced Obedience (Naxxramas, Razovius)
@@ -1796,6 +1799,8 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                 case 72095:                                 // Frozen Orb (h) (Vault of Archavon, Toravon)
                     unMaxTargets = 3;
                     break;
+                case 37676:                                 // Insidious Whisper
+                case 38028:                                 // Watery Grave
                 case 67757:                                 // Nerubian Burrower (Mode 3) (ToCrusader, Anub'arak)
                 case 71221:                                 // Gas spore (Mode 1) (ICC, Festergut)
                     unMaxTargets = 4;
@@ -1965,8 +1970,21 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                 float dest_x = m_targets.m_destX + cos(angle) * radius;
                 float dest_y = m_targets.m_destY + sin(angle) * radius;
                 float dest_z = m_caster->GetPositionZ();
-                m_caster->UpdateGroundPositionZ(dest_x, dest_y, dest_z);
-                m_targets.setDestination(dest_x, dest_y, dest_z);
+                if (!MapManager::IsValidMapCoord(m_caster->GetMapId(), dest_x, dest_y, dest_z))
+                {
+                    sLog.outError("Spell::SetTargetMap: invalid map coordinates for spell %u eff_idx %u target mode %u: mapid %u x %f y %f z %f\n" 
+                        "spell radius: %f caster position: x %f y %f z %f\n"
+                        "base dest position: x %f y %f z %f",
+                        m_spellInfo->Id, effIndex, targetMode, m_caster->GetMapId(), dest_x, dest_y, dest_z,
+                        radius, m_caster->GetPositionX(), m_caster->GetPositionY(), m_caster->GetPositionZ(),
+                        m_targets.m_destX, m_targets.m_destY, m_caster->GetPositionZ());
+                    m_targets.setDestination(m_caster->GetPositionX(), m_caster->GetPositionY(), m_caster->GetPositionZ());
+                }
+                else
+                {
+                    m_caster->UpdateGroundPositionZ(dest_x, dest_y, dest_z);
+                    m_targets.setDestination(dest_x, dest_y, dest_z);
+                }
             }
 
             // This targetMode is often used as 'last' implicitTarget for positive spells, that just require coordinates
@@ -2212,10 +2230,18 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                     targetUnitMap.resize(unMaxTargets);
                 }
             }
-            else if (m_spellInfo->Id == 30843)              // Enfeeble (do not target current victim)
+            else
             {
-                if (Unit* pVictim = m_caster->getVictim())
-                    targetUnitMap.remove(pVictim);
+                // Do not target current victim
+                switch (m_spellInfo->Id)
+                {
+                    case 30843:                             // Enfeeble
+                    case 37676:                             // Insidious Whisper
+                    case 38028:                             // Watery Grave
+                        if (Unit* pVictim = m_caster->getVictim())
+                            targetUnitMap.remove(pVictim);
+                        break;
+                }
             }
             break;
         case TARGET_AREAEFFECT_INSTANT:
@@ -2570,6 +2596,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
             {
                 case 3879: pushType = PUSH_IN_BACK;     break;
                 case 7441: pushType = PUSH_IN_FRONT_15; break;
+                case 8669: pushType = PUSH_IN_FRONT_15; break;
             }
             FillAreaTargets(targetUnitMap, radius, pushType, SPELL_TARGETS_AOE_DAMAGE);
             break;
@@ -4649,7 +4676,7 @@ void Spell::SendChannelStart(uint32 duration)
     //    data << uint32(0);
     //}
     data << uint8(0);       // unk2
-    //if (unk1)
+    //if (unk2)
     //{
     //    data << ObjectGuid().WriteAsPacked();
     //    data << uint32(0);
@@ -5377,7 +5404,7 @@ SpellCastResult Spell::CheckCast(bool strict)
         }
 
         if (IsPositiveSpell(m_spellInfo->Id))
-            if (target->IsImmuneToSpell(m_spellInfo))
+            if (target->IsImmuneToSpell(m_spellInfo, target == m_caster))
                 return SPELL_FAILED_TARGET_AURASTATE;
 
         // Must be behind the target.
@@ -6217,25 +6244,11 @@ SpellCastResult Spell::CheckCast(bool strict)
                 // It is possible to change between vehicles that are boarded on each other
                 if (m_caster->IsBoarded() && m_caster->GetTransportInfo()->IsOnVehicle())
                 {
-                    bool boardedOnEachOther = false;
-                    WorldObject* lastTransport = pTarget;
                     // Check if trying to board a vehicle that is boarded on current transport
-                    while (!boardedOnEachOther && lastTransport->IsBoarded() && lastTransport->GetTransportInfo()->IsOnVehicle())
-                    {
-                        if (lastTransport->GetTransportInfo()->GetTransportGuid() == m_caster->GetTransportInfo()->GetTransportGuid())
-                            boardedOnEachOther = true;
-                        else
-                            lastTransport = lastTransport->GetTransportInfo()->GetTransport();
-                    }
+                    bool boardedOnEachOther = m_caster->GetTransportInfo()->HasOnBoard(pTarget);
                     // Check if trying to board a vehicle that has the current transport on board
-                    lastTransport = m_caster;
-                    while (!boardedOnEachOther && lastTransport->IsBoarded() && lastTransport->GetTransportInfo()->IsOnVehicle())
-                    {
-                        if (lastTransport->GetTransportInfo()->GetTransportGuid() == pTarget->GetTransportInfo()->GetTransportGuid())
-                            boardedOnEachOther = true;
-                        else
-                            lastTransport = lastTransport->GetTransportInfo()->GetTransport();
-                    }
+                    if (!boardedOnEachOther && pTarget->IsBoarded())
+                        boardedOnEachOther = pTarget->GetTransportInfo()->HasOnBoard(m_caster);
 
                     if (!boardedOnEachOther)
                         return SPELL_FAILED_NOT_ON_TRANSPORT;
@@ -6243,6 +6256,8 @@ SpellCastResult Spell::CheckCast(bool strict)
 
                 if (!pTarget->GetVehicleInfo()->CanBoard(m_caster))
                     return SPELL_FAILED_BAD_TARGETS;
+
+                break;
             }
             case SPELL_AURA_MIRROR_IMAGE:
             {

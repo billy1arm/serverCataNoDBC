@@ -37,6 +37,7 @@ Pet::Pet(PetType type) :
 {
     m_name = "Pet";
     m_regenTimer = 4000;
+    m_holyPowerRegenTimer = REGEN_TIME_HOLY_POWER;
 
     // pets always have a charminfo, even if they are not actually charmed
     CharmInfo* charmInfo = InitCharmInfo(this);
@@ -944,7 +945,7 @@ bool Pet::InitStatsForLevel(uint32 petlevel, Unit* owner)
                     }
                     case CLASS_MAGE:
                     {
-                        //40% damage bonus of mage's frost damage
+                        // 40% damage bonus of mage's frost damage
                         float val = owner->GetUInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + SPELL_SCHOOL_FROST) * 0.4f;
                         if (val < 0)
                             val = 0;
@@ -1746,7 +1747,7 @@ bool Pet::resetTalents(bool no_cost)
 
     if (!no_cost)
     {
-        player->ModifyMoney(-(int32)cost);
+        player->ModifyMoney(-(int64)cost);
 
         m_resetTalentsCost = cost;
         m_resetTalentsTime = time(NULL);

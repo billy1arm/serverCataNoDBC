@@ -1262,7 +1262,7 @@ enum Mechanics
     MECHANIC_FEAR             = 5,
     MECHANIC_GRIP             = 6,
     MECHANIC_ROOT             = 7,
-    MECHANIC_PACIFY           = 8,                          //0 spells use this mechanic
+    MECHANIC_PACIFY           = 8,                          // No spells use this mechanic
     MECHANIC_SILENCE          = 9,
     MECHANIC_SLEEP            = 10,
     MECHANIC_SNARE            = 11,
@@ -2821,12 +2821,13 @@ enum PetDiet
 #define CHAIN_SPELL_JUMP_RADIUS 10
 
 // Max values for Guild & Guild Bank
-#define GUILD_BANK_MAX_TABS         6                       // send by client for money log also
+#define GUILD_BANK_MAX_TABS         8                       // send by client for money log also
+#define GUILD_BANK_MAX_BOUGHT_TABS  6                       // number of tabs that can be bought through bank interface
 #define GUILD_BANK_MAX_SLOTS        98
 #define GUILD_BANK_MAX_LOGS         25
 #define GUILD_BANK_MONEY_LOGS_TAB   100                     // used for money log in DB
 #define GUILD_EVENTLOG_MAX_RECORDS  100
-#define GUILD_RANKS_MIN_COUNT       5
+#define GUILD_RANKS_MIN_COUNT       2
 #define GUILD_RANKS_MAX_COUNT       10
 
 enum AiReaction
@@ -3107,12 +3108,14 @@ enum MailResponseResult
     MAIL_ERR_RECIPIENT_NOT_FOUND       = 4,
     MAIL_ERR_NOT_YOUR_TEAM             = 5,
     MAIL_ERR_INTERNAL_ERROR            = 6,
+    MAIL_ERR_DELETE_ITEM_ERROR         = 10,    // ERR_MAIL_DATABASE_ERROR
     MAIL_ERR_DISABLED_FOR_TRIAL_ACC    = 14,
     MAIL_ERR_RECIPIENT_CAP_REACHED     = 15,
     MAIL_ERR_CANT_SEND_WRAPPED_COD     = 16,
     MAIL_ERR_MAIL_AND_CHAT_SUSPENDED   = 17,
     MAIL_ERR_TOO_MANY_ATTACHMENTS      = 18,
     MAIL_ERR_MAIL_ATTACHMENT_INVALID   = 19,
+    MAIL_ERR_MAIL_FAILED_NO_REPORT     = 20,
     MAIL_ERR_ITEM_HAS_EXPIRED          = 21,
 };
 
@@ -3132,7 +3135,8 @@ enum PetTameFailureReason
     PETTAME_DEAD                    = 10,                   // not used in taming
     PETTAME_NOTDEAD                 = 11,                   // not used in taming
     PETTAME_CANTCONTROLEXOTIC       = 12,                   // 3.x
-    PETTAME_UNKNOWNERROR            = 13
+    PETTAME_INVALIDSLOT             = 13,
+    PETTAME_UNKNOWNERROR            = 14,
 };
 
 // Stored in SummonProperties.dbc with slot+1 values
@@ -3250,8 +3254,12 @@ enum MaxLevel
     MAX_LEVEL_CLASSIC                   = 60,
     MAX_LEVEL_TBC                       = 70,
     MAX_LEVEL_WOTLK                     = 80,
+    MAX_LEVEL_CATACLYSM                 = 85,
 };
 
-static const MaxLevel maxLevelForExpansion[MAX_EXPANSION + 1] = { MAX_LEVEL_CLASSIC, MAX_LEVEL_TBC, MAX_LEVEL_WOTLK };
+static const MaxLevel maxLevelForExpansion[MAX_EXPANSION + 1] = { MAX_LEVEL_CLASSIC, MAX_LEVEL_TBC, MAX_LEVEL_WOTLK, MAX_LEVEL_CATACLYSM };
+
+// This spell is used for general boarding serverside
+#define SPELL_RIDE_VEHICLE_HARDCODED    46598
 
 #endif

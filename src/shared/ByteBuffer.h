@@ -150,6 +150,8 @@ class ByteBuffer
         {
             _storage.clear();
             _rpos = _wpos = 0;
+            _curbitval = 0;
+            _bitpos = 8;
         }
 
         template <typename T> ByteBuffer& append(T value)
@@ -649,6 +651,12 @@ class ByteBuffer
                 out += read<char>();
 
             return out;
+        }
+
+        ByteBuffer& WriteStringData(const std::string& str)
+        {
+            FlushBits();
+            return append((uint8 const*)str.c_str(), str.size());
         }
 
         bool ReadBoolean()

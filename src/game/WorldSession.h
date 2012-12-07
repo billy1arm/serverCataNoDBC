@@ -521,6 +521,8 @@ class MANGOS_DLL_SPEC WorldSession
         void HandleRequestVehicleExit(WorldPacket& recvPacket);
         void HandleRequestVehicleSwitchSeat(WorldPacket& recvPacket);
         void HandleChangeSeatsOnControlledVehicle(WorldPacket& recvPacket);
+        void HandleRideVehicleInteract(WorldPacket& recvPacket);
+        void HandleEjectPassenger(WorldPacket& recvPacket);
 
         void HandleRequestRaidInfoOpcode(WorldPacket& recv_data);
 
@@ -563,17 +565,20 @@ class MANGOS_DLL_SPEC WorldSession
         void HandleGuildRosterOpcode(WorldPacket& recvPacket);
         void HandleGuildPromoteOpcode(WorldPacket& recvPacket);
         void HandleGuildDemoteOpcode(WorldPacket& recvPacket);
+        void HandleGuildSetRankOpcode(WorldPacket& recvPacket);
+        void HandleGuildSwitchRankOpcode(WorldPacket& recvPacket);
         void HandleGuildLeaveOpcode(WorldPacket& recvPacket);
         void HandleGuildDisbandOpcode(WorldPacket& recvPacket);
         void HandleGuildLeaderOpcode(WorldPacket& recvPacket);
         void HandleGuildMOTDOpcode(WorldPacket& recvPacket);
-        void HandleGuildSetPublicNoteOpcode(WorldPacket& recvPacket);
-        void HandleGuildSetOfficerNoteOpcode(WorldPacket& recvPacket);
+        void HandleGuildSetNoteOpcode(WorldPacket& recvPacket);
         void HandleGuildRankOpcode(WorldPacket& recvPacket);
         void HandleGuildAddRankOpcode(WorldPacket& recvPacket);
         void HandleGuildDelRankOpcode(WorldPacket& recvPacket);
         void HandleGuildChangeInfoTextOpcode(WorldPacket& recvPacket);
         void HandleSaveGuildEmblemOpcode(WorldPacket& recvPacket);
+        void HandleGuildQueryRanksOpcode(WorldPacket& recvPacket);
+        void HandleGuildAutoDeclineToggleOpcode(WorldPacket& recvPacket);
 
         void HandleTaxiNodeStatusQueryOpcode(WorldPacket& recvPacket);
         void HandleTaxiQueryAvailableNodes(WorldPacket& recvPacket);
@@ -797,6 +802,7 @@ class MANGOS_DLL_SPEC WorldSession
         void HandleInspectArenaTeamsOpcode(WorldPacket& recv_data);
         void HandleArenaTeamQueryOpcode(WorldPacket& recv_data);
         void HandleArenaTeamRosterOpcode(WorldPacket& recv_data);
+        void HandleArenaTeamCreateOpcode(WorldPacket& recv_data);
         void HandleArenaTeamInviteOpcode(WorldPacket& recv_data);
         void HandleArenaTeamAcceptOpcode(WorldPacket& recv_data);
         void HandleArenaTeamDeclineOpcode(WorldPacket& recv_data);

@@ -263,7 +263,7 @@ void WorldSession::HandleLootMoneyOpcode(WorldPacket& /*recv_data*/)
                     playersNear.push_back(playerGroup);
             }
 
-            uint32 money_per_player = uint32((pLoot->gold) / (playersNear.size()));
+            uint64 money_per_player = uint32((pLoot->gold) / (playersNear.size()));
 
             for (std::vector<Player*>::const_iterator i = playersNear.begin(); i != playersNear.end(); ++i)
             {
@@ -497,13 +497,11 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
                 if (group->GetLooterGuid() == player->GetObjectGuid())
                     group->UpdateLooterGuid(pCreature);
 
-            if (loot->isLooted())
+            if (loot->isLooted() && !pCreature->isAlive())
             {
                 // for example skinning after normal loot
                 pCreature->PrepareBodyLootState();
-
-                if (!pCreature->isAlive())
-                    pCreature->AllLootRemovedFromCorpse();
+                pCreature->AllLootRemovedFromCorpse();
             }
             break;
         }

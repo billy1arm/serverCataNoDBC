@@ -411,7 +411,7 @@ void PlayerMenu::SendQuestGiverQuestList(QEmote eEmote, const std::string& Title
     DEBUG_LOG("WORLD: Sent SMSG_QUESTGIVER_QUEST_LIST NPC Guid = %s", npcGUID.GetString().c_str());
 }
 
-void PlayerMenu::SendQuestGiverStatus(uint8 questStatus, ObjectGuid npcGUID)
+void PlayerMenu::SendQuestGiverStatus(uint32 questStatus, ObjectGuid npcGUID)
 {
     WorldPacket data(SMSG_QUESTGIVER_STATUS, 12);
     data << npcGUID;
@@ -886,6 +886,12 @@ void PlayerMenu::SendQuestGiverRequestItems(Quest const* pQuest, ObjectGuid npcG
     // We can always call to RequestItems, but this packet only goes out if there are actually
     // items.  Otherwise, we'll skip straight to the OfferReward
 
+    if (!pQuest->GetReqItemsCount() && !pQuest->GetReqCurrencyCount() && Completable)
+    {
+        SendQuestGiverOfferReward(pQuest, npcGUID, true);
+        return;
+    }
+
     std::string Title = pQuest->GetTitle();
     std::string RequestItemsText = pQuest->GetRequestItemsText();
 
@@ -899,12 +905,6 @@ void PlayerMenu::SendQuestGiverRequestItems(Quest const* pQuest, ObjectGuid npcG
             if (ql->RequestItemsText.size() > (size_t)loc_idx && !ql->RequestItemsText[loc_idx].empty())
                 RequestItemsText = ql->RequestItemsText[loc_idx];
         }
-    }
-
-    if (!pQuest->GetReqItemsCount() && Completable)
-    {
-        SendQuestGiverOfferReward(pQuest, npcGUID, true);
-        return;
     }
 
     WorldPacket data(SMSG_QUESTGIVER_REQUEST_ITEMS, 50);    // guess size

@@ -1194,22 +1194,22 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
 
                     m_caster->RemoveSpellsCausingAura(SPELL_AURA_MOUNTED);
 
-                    //5 different spells used depending on mounted speed and if mount can fly or not
+                    // 5 different spells used depending on mounted speed and if mount can fly or not
                     if (flyspeed >= 4.1f)
                         // Flying Reindeer
-                        m_caster->CastSpell(m_caster, 44827, true); //310% flying Reindeer
+                        m_caster->CastSpell(m_caster, 44827, true); // 310% flying Reindeer
                     else if (flyspeed >= 3.8f)
                         // Flying Reindeer
-                        m_caster->CastSpell(m_caster, 44825, true); //280% flying Reindeer
+                        m_caster->CastSpell(m_caster, 44825, true); // 280% flying Reindeer
                     else if (flyspeed >= 1.6f)
                         // Flying Reindeer
-                        m_caster->CastSpell(m_caster, 44824, true); //60% flying Reindeer
+                        m_caster->CastSpell(m_caster, 44824, true); // 60% flying Reindeer
                     else if (speed >= 2.0f)
                         // Reindeer
-                        m_caster->CastSpell(m_caster, 25859, true); //100% ground Reindeer
+                        m_caster->CastSpell(m_caster, 25859, true); // 100% ground Reindeer
                     else
                         // Reindeer
-                        m_caster->CastSpell(m_caster, 25858, true); //60% ground Reindeer
+                        m_caster->CastSpell(m_caster, 25858, true); // 60% ground Reindeer
 
                     return;
                 }
@@ -4888,6 +4888,10 @@ void Spell::EffectSummonType(SpellEffectEntry const* effect)
     // Expected Amount: TODO - there are quite some exceptions (like totems, engineering dragonlings..)
     uint32 amount = damage > 0 ? damage : 1;
 
+    // basepoints of SUMMON_PROP_GROUP_VEHICLE is often a spellId, set amount to 1
+    if (summon_prop->Group == SUMMON_PROP_GROUP_VEHICLE)
+        amount = 1;
+
     // Expected Level                                       (Totem, Pet and Critter may not use this)
     uint32 level = m_caster->getLevel();
     // level of creature summoned using engineering item based at engineering skill level
@@ -4947,8 +4951,8 @@ void Spell::EffectSummonType(SpellEffectEntry const* effect)
                 case UNITNAME_SUMMON_TITLE_NONE:
                 {
                     // those are classical totems - effectbasepoints is their hp and not summon ammount!
-                    //121: 23035, battlestands
-                    //647: 52893, Anti-Magic Zone (npc used)
+                    // 121: 23035, battlestands
+                    // 647: 52893, Anti-Magic Zone (npc used)
                     if (prop_id == 121 || prop_id == 647)
                         summonResult = DoSummonTotem(effect);
                     else
@@ -5005,14 +5009,11 @@ void Spell::EffectSummonType(SpellEffectEntry const* effect)
                         summonResult = DoSummonCritter(summonPositions, summon_prop, effect, level);
                     break;
                 case UNITNAME_SUMMON_TITLE_OPPONENT:
+                case UNITNAME_SUMMON_TITLE_VEHICLE:
+                case UNITNAME_SUMMON_TITLE_MOUNT:
                 case UNITNAME_SUMMON_TITLE_LIGHTWELL:
                 case UNITNAME_SUMMON_TITLE_BUTLER:
                     summonResult = DoSummonWild(summonPositions, summon_prop, effect, level);
-                    break;
-                case UNITNAME_SUMMON_TITLE_VEHICLE:
-                case UNITNAME_SUMMON_TITLE_MOUNT:
-                    // TODO
-                    // EffectSummonVehicle(i);
                     break;
                 default:
                     sLog.outError("EffectSummonType: Unhandled summon title %u", summon_prop->Title);
@@ -5038,9 +5039,7 @@ void Spell::EffectSummonType(SpellEffectEntry const* effect)
         }
         case SUMMON_PROP_GROUP_VEHICLE:
         {
-            // TODO
-            // EffectSummonVehicle(i);
-            sLog.outDebug("EffectSummonType: Unhandled summon group type SUMMON_PROP_GROUP_VEHICLE(%u)", summon_prop->Group);
+            summonResult = DoSummonVehicle(summonPositions, summon_prop, effect, level);
             break;
         }
         default:
@@ -5478,6 +5477,48 @@ bool Spell::DoSummonPet(SpellEffectEntry const* effect)
         ((Creature*)m_originalCaster)->AI()->JustSummoned((Creature*)spawnCreature);
 
     return false;
+}
+
+bool Spell::DoSummonVehicle(CreatureSummonPositions& list, SummonPropertiesEntry const* prop, SpellEffectEntry const * effect, uint32 /*level*/)
+{
+    MANGOS_ASSERT(!list.empty() && prop);
+
+    uint32 creatureEntry = effect->EffectMiscValue;
+    CreatureInfo const* cInfo = ObjectMgr::GetCreatureTemplate(creatureEntry);
+    if (!cInfo)
+    {
+        sLog.outErrorDb("Spell::DoSummonVehicle: creature entry %u not found for spell %u.", creatureEntry, m_spellInfo->Id);
+        return false;
+    }
+
+    Creature* spawnCreature = m_caster->SummonCreature(creatureEntry, list[0].x, list[0].y, list[0].z, m_caster->GetOrientation(),
+            (m_duration == 0) ? TEMPSUMMON_CORPSE_DESPAWN : TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN, m_duration);
+
+    if (!spawnCreature)
+    {
+        sLog.outError("Spell::DoSummonVehicle: creature entry %u for spell %u could not be summoned.", creatureEntry, m_spellInfo->Id);
+        return false;
+    }
+
+    list[0].creature = spawnCreature;
+
+    // Changes to be sent
+    spawnCreature->SetCreatorGuid(m_caster->GetObjectGuid());
+    spawnCreature->SetUInt32Value(UNIT_CREATED_BY_SPELL, m_spellInfo->Id);
+    //spawnCreature->SetLevel(level); // Do we need to set level for vehicles?
+
+    // Board the caster right after summoning
+    SpellEntry const* controlSpellEntry = sSpellStore.LookupEntry(effect->CalculateSimpleValue());
+    if (controlSpellEntry && IsSpellHaveAura(controlSpellEntry, SPELL_AURA_CONTROL_VEHICLE))
+        m_caster->CastSpell(spawnCreature, controlSpellEntry, true);
+    else
+        m_caster->CastSpell(spawnCreature, SPELL_RIDE_VEHICLE_HARDCODED, true);
+
+    // Notify Summoner
+    if (m_originalCaster && m_originalCaster != m_caster && m_originalCaster->GetTypeId() == TYPEID_UNIT && ((Creature*)m_originalCaster)->AI())
+        ((Creature*)m_originalCaster)->AI()->JustSummoned(spawnCreature);
+
+    return true;
 }
 
 void Spell::EffectLearnSpell(SpellEffectEntry const* effect)
@@ -7111,6 +7152,14 @@ void Spell::EffectScriptEffect(SpellEffectEntry const* effect)
 
                     break;
                 }
+                case 30541:                                 // Blaze
+                {
+                    if (!unitTarget)
+                        return;
+
+                    unitTarget->CastSpell(unitTarget, 30542, true);
+                    break;
+                }
                 case 30769:                                 // Pick Red Riding Hood
                 {
                     if (!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
@@ -7157,6 +7206,14 @@ void Spell::EffectScriptEffect(SpellEffectEntry const* effect)
                         m_caster->GetNearPoint(m_caster, x, y, z, 0, 5.0f, M_PI_F * .5f * i + M_PI_F * .25f);
                         m_caster->SummonCreature(21002, x, y, z, 0, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 30000);
                     }
+                    return;
+                }
+                case 37431:                                 // Spout
+                {
+                    if (!unitTarget)
+                        return;
+
+                    unitTarget->CastSpell(unitTarget, urand(0, 1) ? 37429 : 37430, true);
                     return;
                 }
                 case 38358:                                 // Tidal Surge
@@ -7495,12 +7552,12 @@ void Spell::EffectScriptEffect(SpellEffectEntry const* effect)
                     unitTarget->CastSpell(unitTarget, spellId, true);
                     break;
                 }
-                case 46642:                                 //5,000 Gold
+                case 46642:                                 // 5,000 Gold
                 {
                     if (!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
                         return;
 
-                    ((Player*)unitTarget)->ModifyMoney(50000000);
+                    ((Player*)unitTarget)->ModifyMoney(5000 * GOLD);
                     break;
                 }
                 case 47097:                                 // Surge Needle Teleporter
@@ -8857,7 +8914,7 @@ void Spell::EffectApplyGlyph(SpellEffectEntry const* effect)
 
     Player* player = (Player*)m_caster;
 
-        // glyph sockets level requirement
+    // glyph sockets level requirement
     uint8 minLevel = 0;
     switch (m_glyphIndex)
     {
@@ -9287,7 +9344,7 @@ void Spell::EffectCharge(SpellEffectEntry const* /*effect*/)
         return;
 
     // TODO: research more ContactPoint/attack distance.
-    //3.666666 instead of ATTACK_DISTANCE(5.0f) in below seem to give more accurate result.
+    // 3.666666 instead of ATTACK_DISTANCE(5.0f) in below seem to give more accurate result.
     float x, y, z;
     unitTarget->GetContactPoint(m_caster, x, y, z, 3.666666f);
 
@@ -9871,6 +9928,7 @@ void Spell::EffectPlayMusic(SpellEffectEntry const* effect)
 
     WorldPacket data(SMSG_PLAY_MUSIC, 4);
     data << uint32(soundId);
+    data << ObjectGuid();
     ((Player*)unitTarget)->GetSession()->SendPacket(&data);
 }
 
@@ -10048,7 +10106,7 @@ void Spell::EffectKnockBackFromPosition(SpellEffectEntry const* effect)
     else
         m_caster->GetPosition(x, y, z);
 
-    float angle = unitTarget->GetAngle(x,y) + M_PI_F;
+    float angle = unitTarget->GetAngle(x, y) + M_PI_F;
     float horizontalSpeed = effect->EffectMiscValue * 0.1f;
     float verticalSpeed = damage * 0.1f;
     unitTarget->KnockBackWithAngle(angle, horizontalSpeed, verticalSpeed);

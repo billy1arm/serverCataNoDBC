@@ -685,9 +685,9 @@ struct ChrClassesEntry
     //uint32 flags2;                                        // 8        m_flags (0x08 HasRelicSlot)
     uint32  CinematicSequence;                              // 9        m_cinematicSequenceID
     uint32  expansion;                                      // 10       m_required_expansion
-    //uint32                                                // 11
-    //uint32                                                // 12
-    //uint32                                                // 13
+    uint32  apPerStr;                                       // 11       attack power per strength
+    uint32  apPerAgi;                                       // 12       attack power per agility
+    uint32  rapPerAgi;                                      // 13       ranged attack power per agility
 };
 
 struct ChrRacesEntry
@@ -1496,13 +1496,6 @@ struct ScalingStatValuesEntry
             return spellBonus;
         return 0;
     }
-
-    uint32 getFeralBonus(uint32 mask) const                 // removed in 3.2.x?
-    {
-        if (mask & 0x00010000)                              // not used?
-            return 0;
-        return 0;
-    }
 };
 
 /*struct SkillLineCategoryEntry{
@@ -1800,7 +1793,7 @@ struct SpellReagentsEntry
 // SpellScaling.dbc
 struct SpellScalingEntry
 {
-    //uint32    Id;                                           // 0        m_ID
+    //uint32    Id;                                         // 0        m_ID
     uint32    castTimeMin;                                  // 1
     uint32    castTimeMax;                                  // 2
     uint32    castScalingMaxLevel;                          // 3
@@ -1808,8 +1801,10 @@ struct SpellScalingEntry
     float     coeff1[3];                                    // 5-7
     float     coeff2[3];                                    // 8-10
     float     coeff3[3];                                    // 11-13
-    float     unkMult;                                      // 14       some coefficient, mostly 1.0f
-    uint32    unkLevel;                                     // 15       some level
+    float     coefBase;                                     // 14       some coefficient, mostly 1.0f
+    uint32    coefLevelBase;                                // 15       some level
+
+    bool IsScalableEffect(SpellEffectIndex i) const { return coeff1[i] != 0.0f; };
 };
 
 // SpellShapeshift.dbc
