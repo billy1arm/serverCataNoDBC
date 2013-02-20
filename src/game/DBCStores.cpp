@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -144,6 +144,9 @@ DBCStorage <MapDifficultyEntry> sMapDifficultyStore(MapDifficultyEntryfmt); // o
 MapDifficultyMap sMapDifficultyMap;
 
 DBCStorage <MovieEntry> sMovieStore(MovieEntryfmt);
+
+DBCStorage <MountCapabilityEntry> sMountCapabilityStore(MountCapabilityfmt);
+DBCStorage <MountTypeEntry> sMountTypeStore(MountTypefmt);
 
 DBCStorage <NumTalentsAtLevelEntry> sNumTalentsAtLevelStore(NumTalentsAtLevelfmt);
 
@@ -556,6 +559,8 @@ void LoadDBCStores(const std::string& dataPath)
             sMapDifficultyMap[MAKE_PAIR32(entry->MapId, entry->Difficulty)] = entry;
 
     LoadDBC(availableDbcLocales,bar,bad_dbc_files,sMovieStore,               dbcPath,"Movie.dbc");
+    LoadDBC(availableDbcLocales,bar,bad_dbc_files,sMountCapabilityStore,     dbcPath,"MountCapability.dbc");
+    LoadDBC(availableDbcLocales,bar,bad_dbc_files,sMountTypeStore,           dbcPath,"MountType.dbc");
     LoadDBC(availableDbcLocales,bar,bad_dbc_files,sNumTalentsAtLevelStore,   dbcPath,"NumTalentsAtLevel.dbc");
     LoadDBC(availableDbcLocales,bar,bad_dbc_files,sOverrideSpellDataStore,   dbcPath,"OverrideSpellData.dbc");
     LoadDBC(availableDbcLocales,bar,bad_dbc_files,sQuestFactionRewardStore,  dbcPath,"QuestFactionReward.dbc");
@@ -798,9 +803,9 @@ void LoadDBCStores(const std::string& dataPath)
             if (node->map_id < 2 || i == 82 || i == 83 || i == 93 || i == 94)
                 sOldContinentsNodesMask[field] |= submask;
 
-            // fix DK node at Ebon Hold
+            // Hack DK node at Ebon Hold (unclear if bad dbc data or we need to revisit our checks in ObjectMgr::GetNearestTaxiNode )
             if (i == 315)
-                ((TaxiNodesEntry*)node)->MountCreatureID[1] = 32981;
+               (const_cast<TaxiNodesEntry*>(node))->MountCreatureID[1] = node->MountCreatureID[0];
         }
     }
 

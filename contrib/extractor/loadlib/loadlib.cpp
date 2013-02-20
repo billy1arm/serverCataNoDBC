@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 #define _CRT_SECURE_NO_DEPRECATE
 
 #include "loadlib.h"
@@ -27,7 +45,7 @@ bool OpenArchive(char const* mpqFileName, HANDLE* mpqHandlePtr /*= NULL*/)
 
 bool OpenNewestFile(char const* filename, HANDLE* fileHandlerPtr)
 {
-    for(ArchiveSet::const_reverse_iterator i=gOpenArchives.rbegin(); i!=gOpenArchives.rend();++i)
+    for (ArchiveSet::const_reverse_iterator i = gOpenArchives.rbegin(); i != gOpenArchives.rend(); ++i)
     {
         // always prefer get updated file version
         if (SFileOpenFileEx(*i, filename, SFILE_OPEN_PATCHED_FILE, fileHandlerPtr))
@@ -37,9 +55,9 @@ bool OpenNewestFile(char const* filename, HANDLE* fileHandlerPtr)
     return false;
 }
 
-bool ExtractFile( char const* mpq_name, std::string const& filename )
+bool ExtractFile(char const* mpq_name, std::string const& filename)
 {
-    for(ArchiveSet::const_reverse_iterator i=gOpenArchives.rbegin(); i!=gOpenArchives.rend();++i)
+    for (ArchiveSet::const_reverse_iterator i = gOpenArchives.rbegin(); i != gOpenArchives.rend(); ++i)
     {
         HANDLE fileHandle;
         if (!SFileOpenFileEx(*i, mpq_name, SFILE_OPEN_PATCHED_FILE, &fileHandle))
@@ -69,7 +87,7 @@ bool ExtractFile( char const* mpq_name, std::string const& filename )
 
 void CloseArchives()
 {
-    for(ArchiveSet::const_iterator i = gOpenArchives.begin(); i != gOpenArchives.end();++i)
+    for (ArchiveSet::const_iterator i = gOpenArchives.begin(); i != gOpenArchives.end(); ++i)
         SFileCloseArchive(*i);
     gOpenArchives.clear();
 }
@@ -86,7 +104,7 @@ FileLoader::~FileLoader()
     free();
 }
 
-bool FileLoader::loadFile(char *filename, bool log)
+bool FileLoader::loadFile(char* filename, bool log)
 {
     free();
 
@@ -132,7 +150,7 @@ bool FileLoader::loadFile(char *filename, bool log)
 bool FileLoader::prepareLoadedData()
 {
     // Check version
-    version = (file_MVER *) data;
+    version = (file_MVER*) data;
 
     if (version->fcc != 'MVER')
         return false;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -427,6 +427,9 @@ class Spell
         void FillRaidOrPartyTargets(UnitList& targetUnitMap, Unit* member, Unit* center, float radius, bool raid, bool withPets, bool withcaster);
         void FillRaidOrPartyManaPriorityTargets(UnitList& targetUnitMap, Unit* member, Unit* center, float radius, uint32 count, bool raid, bool withPets, bool withcaster);
         void FillRaidOrPartyHealthPriorityTargets(UnitList& targetUnitMap, Unit* member, Unit* center, float radius, uint32 count, bool raid, bool withPets, bool withcaster);
+
+        // Returns a target that was filled by SPELL_SCRIPT_TARGET (or selected victim) Can return NULL
+        Unit* GetPrefilledUnitTargetOrUnitTarget(SpellEffectIndex effIndex) const;
 
         template<typename T> WorldObject* FindCorpseUsing();
 

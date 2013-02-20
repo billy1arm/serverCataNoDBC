@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -349,7 +349,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS] =
     &Aura::HandleAuraAddMechanicAbilities,                  //293 SPELL_AURA_ADD_MECHANIC_ABILITIES  replaces target's action bars with a predefined spellset
     &Aura::HandleAuraStopNaturalManaRegen,                  //294 SPELL_AURA_STOP_NATURAL_MANA_REGEN implemented in Player:Regenerate
     &Aura::HandleUnused,                                    //295 unused (4.3.4)
-    &Aura::HandleNULL,                                      //296 62 spells in 4.3.4
+    &Aura::HandleAuraSetVehicleId,                          //296 6 spells
     &Aura::HandleNULL,                                      //297 14 spells in 4.3.4
     &Aura::HandleUnused,                                    //298 6 spells in 4.3.4
     &Aura::HandleUnused,                                    //299 unused (3.2.2a-4.3.4)
@@ -1661,10 +1661,23 @@ void Aura::TriggerSpell()
 //                    case 40113: break;
 //                    // Spirit Lance
 //                    case 40157: break;
-//                    // Demon Transform 2
-//                    case 40398: break;
-//                    // Demon Transform 1
-//                    case 40511: break;
+                    case 40398:                             // Demon Transform 2
+                        switch (GetAuraTicks())
+                        {
+                            case 1:
+                                if (target->HasAura(40506))
+                                    target->RemoveAurasDueToSpell(40506);
+                                else
+                                    trigger_spell_id = 40506;
+                                break;
+                            case 2:
+                                trigger_spell_id = 40510;
+                                break;
+                        }
+                        break;
+                    case 40511:                             // Demon Transform 1
+                        trigger_spell_id = 40398;
+                        break;
 //                    // Ancient Flames
 //                    case 40657: break;
 //                    // Ethereal Ring Cannon: Cannon Aura
@@ -3348,10 +3361,17 @@ void Aura::HandleAuraMounted(bool apply, bool Real)
             if (target->GetTypeId() == TYPEID_PLAYER)
                 target->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_PLAYER_VEHICLE);
         }
+
+        if (MountCapabilityEntry const* mountCapability = target->GetMountCapability(uint32(GetMiscBValue())))
+            target->CastSpell(target, mountCapability->SpeedModSpell, true);
     }
     else
     {
         target->Unmount(true);
+
+        // remove speed aura
+        if (MountCapabilityEntry const* mountCapability = target->GetMountCapability(uint32(GetMiscBValue())))
+            target->RemoveAurasDueToSpell(mountCapability->SpeedModSpell);
 
         CreatureInfo const* ci = ObjectMgr::GetCreatureTemplate(m_modifier.m_miscvalue);
         if (ci && target->IsVehicle() && ci->vehicleId == target->GetVehicleInfo()->GetVehicleEntry()->m_ID)
@@ -8804,6 +8824,14 @@ void Aura::HandleAuraModBlockCritChance(bool apply, bool Real)
 {
     if (GetTarget()->GetTypeId() == TYPEID_PLAYER)
         ((Player*)GetTarget())->ApplyModUInt32Value(PLAYER_SHIELD_BLOCK_CRIT_PERCENTAGE, m_modifier.m_amount, apply);
+}
+
+void Aura::HandleAuraSetVehicleId(bool apply, bool Real)
+{
+    if (!Real)
+        return;
+
+    GetTarget()->SetVehicleId(apply ? GetMiscValue() : 0, 0);
 }
 
 bool Aura::IsLastAuraOnHolder()

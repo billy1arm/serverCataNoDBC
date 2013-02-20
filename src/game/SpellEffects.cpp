@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1415,6 +1415,15 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
                     ((Creature*)unitTarget)->ForcedDespawn(10000);
                     return;
                 }
+                case 39635:                                 // Throw Glaive (first)
+                case 39849:                                 // Throw Glaive (second)
+                {
+                    if (!unitTarget)
+                        return;
+
+                    unitTarget->CastSpell(unitTarget, 41466, true, NULL, NULL, m_caster->GetObjectGuid());
+                    return;
+                }
                 case 40802:                                 // Mingo's Fortune Generator (Mingo's Fortune Giblets)
                 {
                     // selecting one from Bloodstained Fortune item
@@ -1446,6 +1455,14 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
                     }
 
                     DoCreateItem(effect, newitemid);
+                    return;
+                }
+                case 40834:                                 // Agonizing Flames
+                {
+                    if (!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    m_caster->CastSpell(unitTarget, 40932, true);
                     return;
                 }
                 case 40962:                                 // Blade's Edge Terrace Demon Boss Summon Branch
@@ -5356,7 +5373,7 @@ bool Spell::DoSummonPossessed(CreatureSummonPositions& list, SummonPropertiesEnt
 
     spawnCreature->SetLevel(level);
 
-    spawnCreature->SetWalk(m_caster->IsWalking());
+    spawnCreature->SetWalk(m_caster->IsWalking(), true);
     // TODO: Set Fly (ie glyph dependend)
 
     // Internal changes
@@ -5513,6 +5530,13 @@ bool Spell::DoSummonVehicle(CreatureSummonPositions& list, SummonPropertiesEntry
         m_caster->CastSpell(spawnCreature, controlSpellEntry, true);
     else
         m_caster->CastSpell(spawnCreature, SPELL_RIDE_VEHICLE_HARDCODED, true);
+
+    // If the boarding failed...
+    if (!spawnCreature->HasAuraType(SPELL_AURA_CONTROL_VEHICLE))
+    {
+        spawnCreature->ForcedDespawn();
+        return false;
+    }
 
     // Notify Summoner
     if (m_originalCaster && m_originalCaster != m_caster && m_originalCaster->GetTypeId() == TYPEID_UNIT && ((Creature*)m_originalCaster)->AI())

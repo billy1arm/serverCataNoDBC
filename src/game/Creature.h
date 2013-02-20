@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -550,7 +550,7 @@ class MANGOS_DLL_SPEC Creature : public Unit
 
         CreatureAI* AI() { return i_AI; }
 
-        void SetWalk(bool enable);
+        void SetWalk(bool enable, bool asDefault = true);
         void SetLevitate(bool enable);
         void SetRoot(bool enable) override;
         void SetWaterWalk(bool enable) override;

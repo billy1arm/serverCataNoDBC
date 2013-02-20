@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -108,7 +108,7 @@ float CONF_flat_liquid_delta_limit = 0.001f; // If max - min less this value - l
 bool  CONF_generate_sql_files = false;		 // Generate SQL files from DBC Files
 bool  CONF_generate_csv_files = false;		 // Generate CSV files from DBC Files
 bool  CONF_remove_dbc = false;				 // Remove DBC after SQL Generation
-bool  CONF_create_xml_file = false;				 // Build an XML config file based on DBC file contents
+bool  CONF_create_xml_file = false;			 // Build an XML config file based on DBC file contents
 
 
 //TODO: Moved into the XML file
@@ -118,9 +118,9 @@ int LANG_COUNT = 12;                        //TODO: Moved into the XML file
 
 //TODO: Move this into the XML file
 int MIN_SUPPORTED_BUILD = 15050;                           // code expect mpq files and mpq content files structure for this build or later
-uint32 CURRENT_BUILD = 0;                      //TODO: Moved into the XML file
-int EXPANSION_COUNT = 4;                    //TODO: Moved into the XML file
-int WORLD_COUNT = 1;                        //TODO: Moved into the XML file
+uint32 CURRENT_BUILD = 0;                    //TODO: Moved into the XML file
+int EXPANSION_COUNT = 4;                     //TODO: Moved into the XML file
+int WORLD_COUNT = 1;                         //TODO: Moved into the XML file
 int FIRST_LOCALE=-1;
 
 class Reader
@@ -846,7 +846,26 @@ void Reader::WriteSqlStructure(ofstream& fileRef,string& filename)
 
     for (int currentField = 0; currentField < maxColumns; ++currentField)
     {
-        //TODO:     Check the config file to see whether this column should be included.
+        //TODO: Retrieve column names from config.xml
+
+        //1  <Files>
+        //2   <Achievement>
+        //3       <include>Y</include>
+        //4       <tablename>dbc_Achievement</tablename>
+        //5       <fieldcount>15</fieldcount>
+        //6       <field type="bigint" name="id" include="y" />
+        //7   </Achievement>
+
+        // STAGE1 - Find a match for <filename> in the xml  //
+        // STAGE2 - Find a match for </filename> in the xml //
+        
+        // STAGE3 - Check that fieldcount (from 5) matches maxColumns
+
+        // STAGE4 - Read the line (6) into an array, name + include are the important fields  
+
+        // STAGE5 - Skip any columns where include data is 'n'
+
+        // STAGE6 - Replace Col below with the data contained in name
 
         fileRef << "\t`Col";
         fileRef << currentField;
@@ -929,6 +948,25 @@ void Reader::WriteSqlData(ofstream& fileRef,string& filename)
 {
     int flds = 0;
     int maxColumns = totalFields;//data.Columns.Count
+
+        //TODO: Retrieve column names from config.xml
+
+        //1  <Files>
+        //2   <Achievement>
+        //3       <include>Y</include>
+        //4       <tablename>dbc_Achievement</tablename>
+        //5       <fieldcount>15</fieldcount>
+        //6       <field type="bigint" name="id" include="y" />
+        //7   </Achievement>
+
+        // STAGE1 - Find a match for <filename> in the xml  //
+        // STAGE2 - Find a match for </filename> in the xml //
+        
+        // STAGE3 - Check that fieldcount (from 5) matches maxColumns
+
+        // STAGE4 - Read the line (6) into an array, include is the important field  
+
+        // STAGE5 - Skip any columns where include data is 'n'
 
     for (int currentRecord = 0; currentRecord < totalRecords; currentRecord++)
     {

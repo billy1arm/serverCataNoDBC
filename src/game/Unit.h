@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -178,7 +178,7 @@ enum UnitBytes1_Flags
     UNIT_BYTE1_FLAG_ALL          = 0xFF
 };
 
-// byte value (UNIT_FIELD_BYTES_2,0)
+// byte value (UNIT_FIELD_BYTES_2,0)                        // TODO - solve conflicting with SharedDefines.h enum SheathTypes
 enum SheathState
 {
     SHEATH_STATE_UNARMED  = 0,                              // non prepared weapon
@@ -210,7 +210,7 @@ enum UnitRename
 
 // byte flags value (UNIT_FIELD_BYTES_2,3)                  See enum ShapeshiftForm in SharedDefines.h
 
-#define CREATURE_MAX_SPELLS     8
+#define CREATURE_MAX_SPELLS     10
 
 enum Swing
 {
@@ -426,7 +426,14 @@ enum UnitState
     UNIT_STAT_FOLLOW_MOVE     = 0x00010000,
     UNIT_STAT_FLEEING         = 0x00020000,                 // FleeMovementGenerator/TimedFleeingMovementGenerator active/onstack
     UNIT_STAT_FLEEING_MOVE    = 0x00040000,
-    UNIT_STAT_IGNORE_PATHFINDING    = 0x00080000,           // do not use pathfinding in any MovementGenerator
+    // More room for other MMGens
+
+    // High-Level states (usually only with Creatures)
+    //UNIT_STAT_NO_COMBAT_MOVEMENT    = 0x01000000,           // Combat Movement for MoveChase stopped
+    UNIT_STAT_RUNNING               = 0x02000000,           // SetRun for waypoints and such
+    //UNIT_STAT_WAYPOINT_PAUSED       = 0x04000000,           // Waypoint-Movement paused genericly (ie by script)
+
+    UNIT_STAT_IGNORE_PATHFINDING    = 0x10000000,           // do not use pathfinding in any MovementGenerator
 
     // masks (only for check)
 
@@ -456,6 +463,8 @@ enum UnitState
 
     // for real move using movegen check and stop (except unstoppable flight)
     UNIT_STAT_MOVING          = UNIT_STAT_ROAMING_MOVE | UNIT_STAT_CHASE_MOVE | UNIT_STAT_FOLLOW_MOVE | UNIT_STAT_FLEEING_MOVE,
+
+    UNIT_STAT_RUNNING_STATE   = UNIT_STAT_CHASE_MOVE | UNIT_STAT_FLEEING_MOVE | UNIT_STAT_RUNNING,
 
     UNIT_STAT_ALL_STATE       = 0xFFFFFFFF
 };
@@ -1045,6 +1054,7 @@ struct CharmInfo
         ReactStates GetReactState() { return m_reactState; }
         bool HasReactState(ReactStates state) { return (m_reactState == state); }
 
+        void InitVehicleCreateSpells();
         void InitPossessCreateSpells();
         void InitCharmCreateSpells();
         void InitPetActionBar();
@@ -1315,6 +1325,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         uint32 GetMountID() const { return GetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID); }
         void Mount(uint32 mount, uint32 spellId = 0);
         void Unmount(bool from_aura = false);
+        MountCapabilityEntry const* GetMountCapability(uint32 mountType) const;
 
         VehicleInfo* GetVehicleInfo() { return m_vehicleInfo; }
         bool IsVehicle() const { return m_vehicleInfo != NULL; }

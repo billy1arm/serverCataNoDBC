@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -373,6 +373,15 @@ bool VehicleInfo::CanBoard(Unit* passenger) const
     return GetEmptySeatsMask() & m_creatureSeats;
 }
 
+Unit* VehicleInfo::GetPassenger(uint8 seat) const
+{
+    for (PassengerMap::const_iterator itr = m_passengers.begin(); itr != m_passengers.end(); ++itr)
+        if (itr->second->GetTransportSeat() == seat)
+            return (Unit*)itr->first;
+
+    return NULL;
+}
+
 // Helper function to undo the turning of the vehicle to calculate a relative position of the passenger when boarding
 void VehicleInfo::CalculateBoardingPositionOf(float gx, float gy, float gz, float go, float& lx, float& ly, float& lz, float& lo) const
 {
@@ -487,11 +496,11 @@ void VehicleInfo::ApplySeatMods(Unit* passenger, uint32 seatFlags)
             {
                 if (!pPlayer->IsWalking() && pVehicle->IsWalking())
                 {
-                    ((Creature*)pVehicle)->SetWalk(false);
+                    ((Creature*)pVehicle)->SetWalk(false, true);
                 }
                 else if (pPlayer->IsWalking() && !pVehicle->IsWalking())
                 {
-                    ((Creature*)pVehicle)->SetWalk(true);
+                    ((Creature*)pVehicle)->SetWalk(true, true);
                 }
             }
         }
@@ -499,8 +508,7 @@ void VehicleInfo::ApplySeatMods(Unit* passenger, uint32 seatFlags)
         if (seatFlags & (SEAT_FLAG_USABLE | SEAT_FLAG_CAN_CAST))
         {
             CharmInfo* charmInfo = pVehicle->InitCharmInfo(pVehicle);
-            // ToDo: Send vehicle actionbar spells
-            charmInfo->InitEmptyActionBar();
+            charmInfo->InitVehicleCreateSpells();
 
             pPlayer->PossessSpellInitialize();
         }

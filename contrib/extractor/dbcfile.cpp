@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #include "dbcfile.h"
 #include "loadlib/loadlib.h"
 
-DBCFile::DBCFile(const std::string &filename):
+DBCFile::DBCFile(const std::string& filename):
     filename(filename),
     data(0)
 {
@@ -91,6 +91,7 @@ bool DBCFile::open()
     stringTable = data + recordSize * recordCount;
 
     size_t data_size = recordSize * recordCount + stringSize;
+
     if (!SFileReadFile(fileHandle, data, data_size, NULL, NULL))
     {
         SFileCloseFile(fileHandle);
@@ -100,6 +101,7 @@ bool DBCFile::open()
     SFileCloseFile(fileHandle);
     return true;
 }
+
 DBCFile::~DBCFile()
 {
     delete [] data;

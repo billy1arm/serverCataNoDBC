@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -331,7 +331,7 @@ enum AuraType
     SPELL_AURA_ADD_MECHANIC_ABILITIES = 293,
     SPELL_AURA_STOP_NATURAL_MANA_REGEN = 294,
     SPELL_AURA_295 = 295,
-    SPELL_AURA_296 = 296,
+    SPELL_AURA_SET_VEHICLE_ID = 296,
     SPELL_AURA_297 = 297,
     SPELL_AURA_298 = 298,
     SPELL_AURA_299 = 299,

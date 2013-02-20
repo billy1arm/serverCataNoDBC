@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1325,6 +1325,26 @@ struct MapDifficultyEntry
     uint32      resetTime;                                  // 4,       m_raidDuration in secs, 0 if no fixed reset time
     uint32      maxPlayers;                                 // 5,       m_maxPlayers some heroic versions have 0 when expected same amount as in normal version
     DBCString   difficultyString;                           // 6        m_difficultystring
+};
+
+struct MountCapabilityEntry
+{
+    uint32 Id;
+    uint32 Flags;
+    uint32 RequiredRidingSkill;
+    uint32 RequiredArea;
+    uint32 RequiredAura;
+    uint32 RequiredSpell;
+    uint32 SpeedModSpell;
+    int32  RequiredMap;
+};
+
+#define MAX_MOUNT_CAPABILITIES 24
+
+struct MountTypeEntry
+{
+    uint32 Id;
+    uint32 MountCapability[MAX_MOUNT_CAPABILITIES];
 };
 
 struct MovieEntry

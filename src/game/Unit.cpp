@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -4322,10 +4322,12 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolder* holder)
         }
     }
 
-    // passive auras not stackable with other ranks
-    if (!IsPassiveSpellStackableWithRanks(aurSpellInfo))
+    // normal spell or passive auras not stackable with other ranks
+    if (!IsPassiveSpell(aurSpellInfo) || !IsPassiveSpellStackableWithRanks(aurSpellInfo))
     {
-        if (!RemoveNoStackAurasDueToAuraHolder(holder))
+        // Hack exceptions for Vehicle/Linked auras
+        if (!IsSpellHaveAura(aurSpellInfo, SPELL_AURA_CONTROL_VEHICLE) && !IsSpellHaveAura(aurSpellInfo, SPELL_AURA_284) &&
+            !RemoveNoStackAurasDueToAuraHolder(holder))
         {
             delete holder;
             return false;                                   // couldn't remove conflicting aura with higher rank
@@ -4478,11 +4480,8 @@ bool Unit::RemoveNoStackAurasDueToAuraHolder(SpellAuraHolder* holder)
     uint32 spellId = holder->GetId();
 
     // passive spell special case (only non stackable with ranks)
-    if (IsPassiveSpell(spellProto))
-    {
-        if (IsPassiveSpellStackableWithRanks(spellProto))
-            return true;
-    }
+    if (IsPassiveSpell(spellProto) && IsPassiveSpellStackableWithRanks(spellProto))
+        return true;
 
     SpellSpecific spellId_spec = GetSpellSpecific(spellId);
 
@@ -8114,6 +8113,68 @@ void Unit::Unmount(bool from_aura)
     }
 }
 
+MountCapabilityEntry const* Unit::GetMountCapability(uint32 mountType) const
+{
+    if (!mountType)
+        return NULL;
+
+    MountTypeEntry const* mountTypeEntry = sMountTypeStore.LookupEntry(mountType);
+    if (!mountTypeEntry)
+        return NULL;
+
+    uint32 zoneId, areaId;
+    GetZoneAndAreaId(zoneId, areaId);
+    uint32 ridingSkill = 5000;
+
+    if (GetTypeId() == TYPEID_PLAYER)
+    {
+        Player* plr = (Player*)(this);
+        ridingSkill = plr->GetSkillValue(SKILL_RIDING);
+    }
+
+    for (uint32 i = MAX_MOUNT_CAPABILITIES; i > 0; --i)
+    {
+        MountCapabilityEntry const* mountCapability = sMountCapabilityStore.LookupEntry(mountTypeEntry->MountCapability[i - 1]);
+        if (!mountCapability)
+            continue;
+
+        if (ridingSkill < mountCapability->RequiredRidingSkill)
+            continue;
+
+        if (m_movementInfo.HasMovementFlag2(MOVEFLAG2_FULLSPEEDPITCHING))
+        {
+            if (!(mountCapability->Flags & MOUNT_FLAG_CAN_PITCH))
+                continue;
+        }
+        else if (m_movementInfo.HasMovementFlag(MOVEFLAG_SWIMMING))
+        {
+            if (!(mountCapability->Flags & MOUNT_FLAG_CAN_SWIM))
+                continue;
+        }
+        else if (!(mountCapability->Flags & 0x1))   // unknown flags, checked in 4.2.2 14545 client
+        {
+            if (!(mountCapability->Flags & 0x2))
+                continue;
+        }
+
+        if (mountCapability->RequiredMap != -1 && int32(GetMapId()) != mountCapability->RequiredMap)
+            continue;
+
+        if (mountCapability->RequiredArea && (mountCapability->RequiredArea != zoneId && mountCapability->RequiredArea != areaId))
+            continue;
+
+        if (mountCapability->RequiredAura && !HasAura(mountCapability->RequiredAura))
+            continue;
+
+        if (mountCapability->RequiredSpell && (GetTypeId() != TYPEID_PLAYER || !(Player*)(this)->HasSpell(mountCapability->RequiredSpell)))
+            continue;
+
+        return mountCapability;
+    }
+
+    return NULL;
+}
+
 void Unit::SetInCombatWith(Unit* enemy)
 {
     Unit* eOwner = enemy->GetCharmerOrOwnerOrSelf();
@@ -10187,8 +10248,24 @@ void CharmInfo::InitPetActionBar()
 
 void CharmInfo::InitEmptyActionBar()
 {
-    for (uint32 x = ACTION_BAR_INDEX_START + 1; x < ACTION_BAR_INDEX_END; ++x)
+    for (uint32 x = ACTION_BAR_INDEX_START; x < ACTION_BAR_INDEX_END; ++x)
         SetActionBar(x, 0, ACT_PASSIVE);
+}
+
+void CharmInfo::InitVehicleCreateSpells()
+{
+    InitEmptyActionBar();
+
+    if (m_unit->GetTypeId() == TYPEID_PLAYER)               // player vehicles don't have spells, keep the action bar empty
+        return;
+
+    for (uint32 x = 0; x < CREATURE_MAX_SPELLS; ++x)
+    {
+        if (IsPassiveSpell(((Creature*)m_unit)->m_spells[x]))
+            m_unit->CastSpell(m_unit, ((Creature*)m_unit)->m_spells[x], true);
+        else
+            AddSpellToActionBar(((Creature*)m_unit)->m_spells[x], ActiveStates(0x8 + x));
+    }
 }
 
 void CharmInfo::InitPossessCreateSpells()
@@ -11052,20 +11129,40 @@ void Unit::ApplyAttackTimePercentMod(WeaponAttackType att, float val, bool apply
     {
         ApplyPercentModFloatVar(m_modAttackSpeedPct[att], val, !apply);
         ApplyPercentModFloatValue(UNIT_FIELD_BASEATTACKTIME + att, val, !apply);
-    }
+		
+		if (GetTypeId() == TYPEID_PLAYER)
+		{
+			if (att == BASE_ATTACK)
+				ApplyPercentModFloatValue(PLAYER_FIELD_MOD_HASTE, val, !apply);
+			else if (att == RANGED_ATTACK)
+				ApplyPercentModFloatValue(PLAYER_FIELD_MOD_RANGED_HASTE, val, !apply);
+		}
+	}
     else
     {
         ApplyPercentModFloatVar(m_modAttackSpeedPct[att], -val, apply);
         ApplyPercentModFloatValue(UNIT_FIELD_BASEATTACKTIME + att, -val, apply);
-    }
+		{
+			if (att == BASE_ATTACK)
+				ApplyPercentModFloatValue(PLAYER_FIELD_MOD_HASTE, -val, apply);
+			else if (att == RANGED_ATTACK)
+				ApplyPercentModFloatValue(PLAYER_FIELD_MOD_RANGED_HASTE, -val, apply);
+		}
+	}
 }
 
 void Unit::ApplyCastTimePercentMod(float val, bool apply)
 {
     if (val > 0)
+	{
         ApplyPercentModFloatValue(UNIT_MOD_CAST_SPEED, val, !apply);
+		ApplyPercentModFloatValue(UNIT_MOD_CAST_HASTE, val, !apply);
+	}
     else
+	{
         ApplyPercentModFloatValue(UNIT_MOD_CAST_SPEED, -val, apply);
+		ApplyPercentModFloatValue(UNIT_MOD_CAST_HASTE, -val, apply);
+	}
 }
 
 void Unit::UpdateAuraForGroup(uint8 slot)

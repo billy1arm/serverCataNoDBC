@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+* Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -419,6 +419,12 @@ enum ItemLimitCategoryMode
 {
     ITEM_LIMIT_CATEGORY_MODE_HAVE  = 0,                      // limit applied to amount items in inventory/bank
     ITEM_LIMIT_CATEGORY_MODE_EQUIP = 1,                      // limit applied to amount equipped items (including used gems)
+};
+
+enum MountFlags
+{
+    MOUNT_FLAG_CAN_PITCH                = 0x4,
+    MOUNT_FLAG_CAN_SWIM                 = 0x8,
 };
 
 // some used in code cases

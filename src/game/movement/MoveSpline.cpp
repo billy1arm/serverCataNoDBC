@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #include "MoveSpline.h"
 #include <sstream>
 #include "Log.h"
+#include "Unit.h"
 
 namespace Movement
 {
@@ -196,12 +197,12 @@ namespace Movement
 
 /// ============================================================================================
 
-    bool MoveSplineInitArgs::Validate() const
+    bool MoveSplineInitArgs::Validate(Unit* unit) const
     {
 #define CHECK(exp) \
     if (!(exp))\
     {\
-        sLog.outError("MoveSplineInitArgs::Validate: expression '%s' failed", #exp);\
+        sLog.outError("MoveSplineInitArgs::Validate: expression '%s' failed for %s", #exp, unit->GetGuidStr().c_str());\
         return false;\
     }
         CHECK(path.size() > 1);

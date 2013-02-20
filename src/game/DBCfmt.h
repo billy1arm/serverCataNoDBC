@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,6 +86,8 @@ const char MailTemplateEntryfmt[]="nxs";
 const char MapEntryfmt[]="nsiiiisissififfiiiii";
 const char MapDifficultyEntryfmt[]="niisiis";
 const char MovieEntryfmt[]="nxxx";
+const char MountCapabilityfmt[]="niiiiiii";
+const char MountTypefmt[]="niiiiiiiiiiiiiiiiiiiiiiii";
 const char NumTalentsAtLevelfmt[]="df";
 const char OverrideSpellDatafmt[]="niiiiiiiiiixx";
 const char QuestFactionRewardfmt[]="niiiiiiiiii";

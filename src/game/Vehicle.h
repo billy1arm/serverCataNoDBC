@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -74,6 +74,7 @@ class VehicleInfo : public TransportBase
         void UnBoard(Unit* passenger, bool changeVehicle);  // Used to Unboard a passenger from a vehicle
 
         bool CanBoard(Unit* passenger) const;               // Used to check if a Unit can board a vehicle
+        Unit* GetPassenger(uint8 seat) const;
 
         void RemoveAccessoriesFromMap();                    ///< Unsummones accessory in case of far-teleport or death
 

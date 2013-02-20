@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1450,10 +1450,16 @@ enum Targets
     TARGET_NONCOMBAT_PET               = 90,
     TARGET_91                          = 91,
     TARGET_92                          = 92,
-    TARGET_94                          = 94,
+    TARGET_CONTROLLED_VEHICLE          = 94,
     TARGET_95                          = 95,
-    TARGET_96                          = 96,
-    TARGET_97                          = 97,
+    TARGET_VEHICLE_PASSENGER_0         = 96,
+    TARGET_VEHICLE_PASSENGER_1         = 97,
+    TARGET_VEHICLE_PASSENGER_2         = 98,
+    TARGET_VEHICLE_PASSENGER_3         = 99,
+    TARGET_VEHICLE_PASSENGER_4         = 100,
+    TARGET_VEHICLE_PASSENGER_5         = 101,
+    TARGET_VEHICLE_PASSENGER_6         = 102,
+    TARGET_VEHICLE_PASSENGER_7         = 103,
     TARGET_IN_FRONT_OF_CASTER_30       = 104,
     TARGET_105                         = 105,
     TARGET_106                         = 106,

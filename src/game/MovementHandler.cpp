@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -253,8 +253,11 @@ void WorldSession::HandleMoveTeleportAckOpcode(WorldPacket& recv_data)
 void WorldSession::HandleMovementOpcodes(WorldPacket& recv_data)
 {
     uint32 opcode = recv_data.GetOpcode();
-    DEBUG_LOG("WORLD: Recvd %s (%u, 0x%X) opcode", LookupOpcodeName(opcode), opcode, opcode);
-    recv_data.hexlike();
+    if (!sLog.HasLogFilter(LOG_FILTER_PLAYER_MOVES))
+    {
+        DEBUG_LOG("WORLD: Recvd %s (%u, 0x%X) opcode", LookupOpcodeName(opcode), opcode, opcode);
+        recv_data.hexlike();
+    }
 
     Unit* mover = _player->GetMover();
     Player* plMover = mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL;

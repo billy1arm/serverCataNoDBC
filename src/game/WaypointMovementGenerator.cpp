@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -88,13 +88,13 @@ void WaypointMovementGenerator<Creature>::Initialize(Creature& creature)
 void WaypointMovementGenerator<Creature>::Finalize(Creature& creature)
 {
     creature.clearUnitState(UNIT_STAT_ROAMING | UNIT_STAT_ROAMING_MOVE);
-    creature.SetWalk(false);
+    creature.SetWalk(!creature.hasUnitState(UNIT_STAT_RUNNING_STATE), false);
 }
 
 void WaypointMovementGenerator<Creature>::Interrupt(Creature& creature)
 {
     creature.clearUnitState(UNIT_STAT_ROAMING | UNIT_STAT_ROAMING_MOVE);
-    creature.SetWalk(false);
+    creature.SetWalk(!creature.hasUnitState(UNIT_STAT_RUNNING_STATE), false);
 }
 
 void WaypointMovementGenerator<Creature>::Reset(Creature& creature)
@@ -185,7 +185,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature& creature)
 
     if (node.orientation != 100 && node.delay != 0)
         init.SetFacing(node.orientation);
-    init.SetWalk(!creature.IsLevitating());
+    creature.SetWalk(!creature.hasUnitState(UNIT_STAT_RUNNING_STATE) && !creature.IsLevitating(), false);
     init.Launch();
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@
 
 #include "MoveSplineFlag.h"
 #include <G3D/Vector3.h>
+
+class Unit;
 
 namespace Movement
 {
@@ -59,7 +61,7 @@ namespace Movement
             float initialOrientation;
 
             /** Returns true to show that the arguments were configured correctly and MoveSpline initialization will succeed. */
-            bool Validate() const;
+            bool Validate(Unit* unit) const;
         private:
             bool _checkPathBounds() const;
     };

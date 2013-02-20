@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ const char ConditionsSrcFmt[] = "iiii";
 const char ConditionsDstFmt[] = "iiii";
 const char VehicleAccessorySrcFmt[] = "iiix";
 const char VehicleAccessoryDstFmt[] = "iii";
-const char CreatureTemplateSpellsFmt[] = "iiiiiiiii";
+const char CreatureTemplateSpellsFmt[] = "iiiiiiiiiii";
 
 SQLStorage sCreatureStorage(CreatureInfosrcfmt, CreatureInfodstfmt, "entry", "creature_template");
 SQLStorage sCreatureDataAddonStorage(CreatureDataAddonInfofmt, "guid", "creature_addon");

@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2005-2013 MaNGOS <http://getmangos.com/>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 #ifndef LOAD_LIB_H
 #define LOAD_LIB_H
 
@@ -35,12 +53,12 @@ typedef uint8_t            uint8;
 #endif
 
 typedef std::deque<HANDLE> ArchiveSet;
-typedef std::pair<ArchiveSet::const_iterator,ArchiveSet::const_iterator> ArchiveSetBounds;
+typedef std::pair<ArchiveSet::const_iterator, ArchiveSet::const_iterator> ArchiveSetBounds;
 
 bool OpenArchive(char const* mpqFileName, HANDLE* mpqHandlePtr = NULL);
 bool OpenNewestFile(char const* filename, HANDLE* fileHandlerPtr);
 ArchiveSetBounds GetArchivesBounds();
-bool ExtractFile( char const* mpq_name, std::string const& filename );
+bool ExtractFile(char const* mpq_name, std::string const& filename);
 void CloseArchives();
 
 #define FILE_FORMAT_VERSION    18
@@ -50,7 +68,8 @@ void CloseArchives();
 //
 struct file_MVER
 {
-    union{
+    union
+    {
         uint32 fcc;
         char   fcc_txt[4];
     };
@@ -58,18 +77,19 @@ struct file_MVER
     uint32 ver;
 };
 
-class FileLoader{
-    uint8  *data;
-    uint32  data_size;
-public:
-    virtual bool prepareLoadedData();
-    uint8 *GetData()     {return data;}
-    uint32 GetDataSize() {return data_size;}
+class FileLoader
+{
+        uint8*  data;
+        uint32  data_size;
+    public:
+        virtual bool prepareLoadedData();
+        uint8* GetData()     {return data;}
+        uint32 GetDataSize() {return data_size;}
 
-    file_MVER *version;
-    FileLoader();
-    ~FileLoader();
-    bool loadFile(char *filename, bool log = true);
-    virtual void free();
+        file_MVER* version;
+        FileLoader();
+        ~FileLoader();
+        bool loadFile(char* filename, bool log = true);
+        virtual void free();
 };
 #endif
