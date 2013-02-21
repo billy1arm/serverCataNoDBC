@@ -84,7 +84,6 @@ bool ExtractFile(char const* mpq_name, std::string const& filename)
     return false;
 }
 
-
 void CloseArchives()
 {
     for (ArchiveSet::const_iterator i = gOpenArchives.begin(); i != gOpenArchives.end(); ++i)

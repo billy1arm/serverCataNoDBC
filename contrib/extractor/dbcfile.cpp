@@ -25,12 +25,10 @@ DBCFile::DBCFile(const std::string& filename):
     filename(filename),
     data(0)
 {
-
 }
 
 DBCFile::DBCFile(HANDLE file) : fileHandle(file), data(0)
 {
-
 }
 
 bool DBCFile::open()

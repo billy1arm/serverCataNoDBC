@@ -1367,7 +1367,7 @@
             <field type="bigint" name="maxcount_inv" include="y" />
             <field type="bigint" name="maxcount_item" include="y" />
             <field type="bigint" name="type" include="y" />
-            <field type="bigint" name="min_item_level" include="y" />		
+            <field type="bigint" name="min_item_level" include="y" />
         </GemProperties>
         <GlueScreenEmote>
             <include>Y</include>

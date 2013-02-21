@@ -39,7 +39,7 @@
 #include <fcntl.h>
 #include <fstream>
 #include <iostream>
-#include <stdio.h> 
+#include <stdio.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,7 +49,6 @@
 #include <vector>
 #include <map>
 #include <fstream>
-
 
 #if defined( __GNUC__ )
     #define _open   open
@@ -110,7 +109,6 @@ bool  CONF_generate_csv_files = false;		 // Generate CSV files from DBC Files
 bool  CONF_remove_dbc = false;				 // Remove DBC after SQL Generation
 bool  CONF_create_xml_file = false;			 // Build an XML config file based on DBC file contents
 
-
 //TODO: Moved into the XML file
 static char* const langs[] = {"enGB", "enUS", "deDE", "esES", "frFR", "koKR", "zhCN", "zhTW", "enCN", "enTW", "esMX", "ruRU" };
 
@@ -162,7 +160,7 @@ Reader::Reader()
     isIntField = 0;
     isByteField = 0;
     isBoolField = 0;
-    
+
     isADB = false;
     isDB2 = false;
     isDBC = false;
@@ -316,7 +314,7 @@ bool Reader::LoadBinary(char *fileName, string fileFormat, int _recordSize)
         unsigned char *WDBData = new unsigned char[WDBDataSize];
         fread(WDBData, WDBDataSize, 1, input);
         fclose(input);
-        
+
         if (LoadWDB(fileName, fileFormat, WDBData, WDBDataSize))
             printf("WDB file loaded: '%s' (Revision: %i, Locale: %s)\n", fileName, WDBRevision, _tempWDBLocale.c_str());
         else
@@ -330,25 +328,25 @@ bool Reader::LoadBinary(char *fileName, string fileFormat, int _recordSize)
             fclose(input);
             return false;
         }
-        
+
         fread(&totalRecords, 4, 1, input);
         fread(&totalFields, 4, 1, input);
         fread(&recordSize, 4, 1, input);
         fread(&stringSize, 4, 1, input);
-    
+
         if (!totalRecords || !totalFields || !recordSize)
         {
             printf("ERROR: '%s': No records/fields found in file.\n", fileName);
             fclose(input);
             return false;
         }
-        
+
         int headerSize = 20;
         long unkBytes = fileSize - headerSize - (totalRecords * recordSize) - stringSize;
         long dataBytes = fileSize - headerSize - unkBytes - stringSize;
         long stringBytes = fileSize - headerSize - unkBytes - (totalRecords * recordSize);
         if ((totalRecords < 0) || (totalFields < 0) || (stringSize < 0) ||
-            (dataBytes < 0) || (stringBytes < 0) || 
+            (dataBytes < 0) || (stringBytes < 0) ||
             (dataBytes != (totalRecords * recordSize)) || (stringBytes != stringSize))
         {
             printf("ERROR: '%s': Structure is damaged.\n", fileName);
@@ -811,25 +809,129 @@ void CreateDir(const std::string& Path)
 #endif
 }
 
-void replaceAll(std::string& str, const std::string& from, const std::string& to) { 
-    if(from.empty()) 
-        return; 
-    size_t start_pos = 0; 
-    while((start_pos = str.find(from, start_pos)) != std::string::npos) { 
-        str.replace(start_pos, from.length(), to); 
-        start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx' 
-    } 
-} 
+void replaceAll(std::string& str, const std::string& from, const std::string& to) {
+    if(from.empty())
+        return;
+    size_t start_pos = 0;
+    while((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
+    }
+}
 
 string CleanFilename(string Filename)
 {
     string outFilename = Filename;
-    replaceAll(outFilename,".dbc",""); 
-    replaceAll(outFilename,"./dbc/",""); 
-    replaceAll(outFilename,".db2",""); 
-    replaceAll(outFilename,"./db2/",""); 
+    replaceAll(outFilename,".dbc","");
+    replaceAll(outFilename,"./dbc/","");
+    replaceAll(outFilename,".db2","");
+    replaceAll(outFilename,"./db2/","");
 
     return outFilename;
+}
+
+std::vector<std::string> LookupDBCinXML(string Filename)
+{
+    std::vector<std::string> outFieldname ;
+    bool foundKey = false;
+    int FIELDCOUNT=0;
+    int CURRENTFIELD = 0;
+
+    ifstream xmlfile2 ("ad.xml");
+    string thisLine;
+    //std::vector<std::string> test(5);
+    //test[0] = "test0";
+    //test[1] = "test1";
+    //test[2] = "test2";
+    //test[3] = "test3";
+    //test[4] = "test4";
+
+
+
+    if (xmlfile2.is_open())
+    {
+        printf("..Searching for %s in config\n",Filename.c_str());
+
+        while ( xmlfile2.good() )
+        {
+          std::getline(xmlfile2,thisLine);
+    string startTag = (string)"<" + Filename + ">";
+    string endTag = (string)"</" + Filename + ">";
+            if (thisLine.find(startTag.c_str()) != string::npos)
+            {
+            // Found the start Tag, need to build a list of the lines between this and the end tag
+                foundKey = true;
+            }
+            else if (thisLine.find(endTag) != string::npos)
+            {
+                break;
+            // Found the end tag, need to bail out of this routine
+            }
+            else if (thisLine.find("<fieldcount>") != string::npos)
+            {
+            // Read the number of fields
+                string result=thisLine;
+                replaceAll(result,"fieldcount","");
+                replaceAll(result,"/","");
+                replaceAll(result,"<>","");
+                replaceAll(result," ","");
+
+                printf("fieldcount=%s\n" , result);
+                int numb;
+                istringstream ( result ) >> numb;
+                FIELDCOUNT = numb;
+                std::vector<std::string> outFilename(numb);
+            }
+            else if (thisLine.find("<field") != string::npos)
+            {
+                string result=thisLine;
+                replaceAll(result,"field type","");
+                replaceAll(result,"/","");
+                replaceAll(result,"<>","");
+                replaceAll(result," ","");
+
+                //printf("Min_Supported_Build=%s\n" , result);
+                string thisline;
+                istringstream ( result ) >> thisline;
+                outFieldname[CURRENTFIELD] = thisline;
+
+                CURRENTFIELD +=1;
+                //<Achievement>
+	               // <index>
+	               //   <primary>id</primary>
+	               // </index>
+                //    <include>Y</include>
+                //    <tablename>dbc_Achievement</tablename>
+                //    <fieldcount>14</fieldcount>
+                //    <field type="bigint" name="id" include="y" />
+                //    <field type="bigint" name="factionFlag" include="y" />
+                //    <field type="bigint" name="mapId" include="y" />
+                //    <field type="bigint" name="parentAchievement" include="y" />
+                //    <field type="text" name="name" include="y" />
+                //    <field type="text" name="description" include="y" />
+                //    <field type="bigint" name="categoryId" include="y" />
+                //    <field type="bigint" name="rewardPoints" include="y" />
+                //    <field type="bigint" name="OrderInCategory" include="y" />
+                //    <field type="bigint" name="flags" include="y" />
+                //    <field type="bigint" name="iconId" include="y" />
+                //    <field type="text" name="reward" include="y" />
+                //    <field type="bigint" name="reqCriteriasCount" include="y" />
+                //    <field type="bigint" name="refAchievement" include="y" />
+                //</Achievement>
+
+
+            }
+        }
+
+        xmlfile2.close();
+    }
+    else
+    {
+        printf(" Failed to open XML");
+        std::vector<std::string> outFilename(1);
+        outFilename[0]="";
+    }
+    return outFieldname;
 }
 
 void Reader::WriteSqlStructure(ofstream& fileRef,string& filename)
@@ -840,14 +942,18 @@ void Reader::WriteSqlStructure(ofstream& fileRef,string& filename)
 
     // Generate the SQL for the Fields
     int maxColumns = totalFields; //data.Columns.Count
-
+    printf (".... About to initialise thisColumnName: ");
+    std::vector<std::string>thisColumnName;
     //TODO: Check the totalFields matches the number listed in the config file for this file
     //      If it does, replace the Colxx column names with fieldnames from the config file
 
     for (int currentField = 0; currentField < maxColumns; ++currentField)
     {
-        //TODO: Retrieve column names from config.xml
+        //TODO: Retrieve column names from ad.xml
+        printf (".... About to Call LookupDBCinXML: %s",filename);
 
+        thisColumnName = LookupDBCinXML(filename);
+        printf (".... Returned from LookupDBCinXML: ");
         //1  <Files>
         //2   <Achievement>
         //3       <include>Y</include>
@@ -858,45 +964,65 @@ void Reader::WriteSqlStructure(ofstream& fileRef,string& filename)
 
         // STAGE1 - Find a match for <filename> in the xml  //
         // STAGE2 - Find a match for </filename> in the xml //
-        
+
         // STAGE3 - Check that fieldcount (from 5) matches maxColumns
 
-        // STAGE4 - Read the line (6) into an array, name + include are the important fields  
+        // STAGE4 - Read the line (6) into an array, name + include are the important fields
 
         // STAGE5 - Skip any columns where include data is 'n'
 
         // STAGE6 - Replace Col below with the data contained in name
 
-        fileRef << "\t`Col";
-        fileRef << currentField;
-        fileRef << "`" ;
+   /*     if (currentField>0)
+        {
+            try
+            {
+                if (thisColumnName[currentField] != "")
+                {
+                    fileRef << "\t`";
+                    fileRef << thisColumnName[currentField];
+                    fileRef << "`" ;
+                }
+                else
+                {
+                    fileRef << "\t`Col";
+                    fileRef << currentField;
+                    fileRef << "`" ;
+                }
+            }
+            catch (exception a)
+            {*/
+                    fileRef << "\t`Col";
+                    fileRef << currentField;
+                    fileRef << "`" ;
+          /*  }
+        */
 
-        //TODO: Override these settings with values from the Config File
-        if (isStringField[currentField])
-            fileRef << " TEXT NOT NULL";
-        else if (isFloatField[currentField])
-            fileRef << " FLOAT NOT NULL DEFAULT '0'";
+            //TODO: Override these settings with values from the Config File
+            if (isStringField[currentField])
+                fileRef << " TEXT NOT NULL";
+            else if (isFloatField[currentField])
+                fileRef << " FLOAT NOT NULL DEFAULT '0'";
 
-        else if (isByteField[currentField])
-            fileRef << " TINYINT UNSIGNED NOT NULL DEFAULT '0'";
+            else if (isByteField[currentField])
+                fileRef << " TINYINT UNSIGNED NOT NULL DEFAULT '0'";
 
-        else if (isIntField[currentField] || isBoolField[currentField])
-            fileRef << " BIGINT NOT NULL DEFAULT '0'";
+            else if (isIntField[currentField] || isBoolField[currentField])
+                fileRef << " BIGINT NOT NULL DEFAULT '0'";
 
-        if (currentField+1 < totalFields)
-            fileRef << "," << endl;
-    } 
-
-    //TODO:     Build a list of the primary keys and add this to the SQL definition    
+            if (currentField+1 < totalFields)
+                fileRef << "," << endl;
+        }
+    //}
+    //TODO:     Build a list of the primary keys and add this to the SQL definition
     //{
     //    sqlWriter.WriteLine("\tPRIMARY KEY (`{0}`)", index.ColumnName);
     //}
 
     // Close off the final part of the header section
-    fileRef << ")" << endl; 
+    fileRef << ")" << endl;
     fileRef << " ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Export of " + filename + "';" << endl;
     fileRef << " SET NAMES UTF8;" << endl;
-
 }
 
 void Reader::GenerateXml(ofstream& fileRef,string& filename)
@@ -931,15 +1057,15 @@ void Reader::GenerateXml(ofstream& fileRef,string& filename)
 
 //        if (currentField+1 < totalFields)
             fileRef << " name=\"col" << currentField << "\" include=\"y\" />" << endl;
-    } 
+    }
     fileRef << "        </" + filename + ">" << endl;
 //    fileRef.close();
 }
 
 static string StripBadCharacters(string input)
 {
-    replaceAll(input,"'","\'"); 
-    replaceAll(input,"""","\""""); 
+    replaceAll(input,"'","\'");
+    replaceAll(input,"""","\"""");
 
     return input;
 }
@@ -961,10 +1087,10 @@ void Reader::WriteSqlData(ofstream& fileRef,string& filename)
 
         // STAGE1 - Find a match for <filename> in the xml  //
         // STAGE2 - Find a match for </filename> in the xml //
-        
+
         // STAGE3 - Check that fieldcount (from 5) matches maxColumns
 
-        // STAGE4 - Read the line (6) into an array, include is the important field  
+        // STAGE4 - Read the line (6) into an array, include is the important field
 
         // STAGE5 - Skip any columns where include data is 'n'
 
@@ -1014,7 +1140,6 @@ void Reader::WriteSqlData(ofstream& fileRef,string& filename)
                 {
                     fileRef << '"' << '"';
                 }
-
             }
             else if (isWDB && isStringField[currentField])
             {
@@ -1070,11 +1195,10 @@ void Reader::WriteSqlData(ofstream& fileRef,string& filename)
     }
 }
 
-
-inline const char * const BoolToString(bool b) 
-{ 
-  return b ? "true" : "false"; 
-} 
+inline const char * const BoolToString(bool b)
+{
+  return b ? "true" : "false";
+}
 
 void ExportFiles(ofstream& fileRef, const char* FileName )
 {
@@ -1101,7 +1225,7 @@ void ExportFiles(ofstream& fileRef, const char* FileName )
             outfile.open(filename2);
 
             if(outfile.is_open())
-            {		
+            {
                 //Generate CSV files Here
                 if (CONF_generate_csv_files)
                 {
@@ -1508,7 +1632,6 @@ struct map_heightHeader
 
 #define MAP_LIQUID_TYPE_DARK_WATER  0x10
 #define MAP_LIQUID_TYPE_WMO_WATER   0x20
-
 
 #define MAP_LIQUID_NO_TYPE    0x0001
 #define MAP_LIQUID_NO_HEIGHT  0x0002
@@ -2158,21 +2281,21 @@ void ExtractDBCFiles(int locale, bool basicLocale, uint32& ClientVersion)
     if (CONF_create_xml_file)
     {
         //Check if config file exists
-        ifstream my_file("ad_config_generated.xml"); 
-        if (my_file.good()) 
+        ifstream my_file("ad_generated.xml");
+        if (my_file.good())
         {   //It does, delete it
             my_file.close();
-            if( remove( "ad_config_generated.xml" ) != 0 )
+            if( remove( "ad_generated.xml" ) != 0 )
             {
                 //Failed to delete the file, prevent any more operations on the file
-                perror( "Error deleting file: ad_config_generated.xml");
+                perror( "Error deleting file: ad_generated.xml");
                 xmlError=1;
             }
-        } 
+        }
 
         if(xmlError == 0)
         {
-            xmlfile.open( "ad_config_generated.xml", ios::out | ios::app); 
+            xmlfile.open( "ad_generated.xml", ios::out | ios::app);
             xmlfile << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
             xmlfile << "<root>" << endl;
             xmlfile << "    <Config>" << endl;
@@ -2204,7 +2327,7 @@ void ExtractDBCFiles(int locale, bool basicLocale, uint32& ClientVersion)
                 printf ("\n");
             }
         }
-        
+
         //Remove DBC file Here
         if (CONF_remove_dbc)
         {
@@ -2422,74 +2545,73 @@ int main(int argc, char * arg[])
         while ( xmlfile.good() )
         {
           std::getline(xmlfile,thisLine);
-            if (thisLine.find("<Min_Supported_Build>") != string::npos) 
-            { 
-            //.. found. 
+            if (thisLine.find("<Min_Supported_Build>") != string::npos)
+            {
+            //.. found.
                 string result=thisLine;
                 replaceAll(result,"Min_Supported_Build","");
                 replaceAll(result,"/","");
                 replaceAll(result,"<>","");
                 replaceAll(result," ","");
-   
+
                 printf("Min_Supported_Build=%s\n" , result);
                 int numb;
                 istringstream ( result ) >> numb;
                 MIN_SUPPORTED_BUILD = numb;
             }
-            else if (thisLine.find("<Lang_Count>") != string::npos) 
+            else if (thisLine.find("<Lang_Count>") != string::npos)
             {
                 string result=thisLine;
                 replaceAll(result,"Lang_Count","");
                 replaceAll(result,"/","");
                 replaceAll(result,"<>","");
                 replaceAll(result," ","");
-   
+
                 printf("No. Languages=%s\n" , result);
                 int numb;
                 istringstream ( result ) >> numb;
                 LANG_COUNT = numb;
-
+                FIRST_LOCALE = 0;
             }
-            else if (thisLine.find("<Expansion_Count>") != string::npos) 
+            else if (thisLine.find("<Expansion_Count>") != string::npos)
             {
                 string result=thisLine;
                 replaceAll(result,"Expansion_Count","");
                 replaceAll(result,"/","");
                 replaceAll(result,"<>","");
                 replaceAll(result," ","");
-   
+
                 printf("No. Expansions=%s\n" , result);
                 int numb;
                 istringstream ( result ) >> numb;
                 EXPANSION_COUNT = numb;
             }
-            else if (thisLine.find("<World_Count>") != string::npos) 
+            else if (thisLine.find("<World_Count>") != string::npos)
             {
                 string result=thisLine;
                 replaceAll(result,"World_Count","");
                 replaceAll(result,"/","");
                 replaceAll(result,"<>","");
                 replaceAll(result," ","");
-   
+
                 printf("No. worlds=%s\n" , result);
                 int numb;
                 istringstream ( result ) >> numb;
                 WORLD_COUNT = numb;
-
             }
-            //else if (thisLine.find("<Languages>") != string::npos) 
+            //else if (thisLine.find("<Languages>") != string::npos)
             //{
             //    string result=thisLine;
             //    replaceAll(result,"Languages","");
             //    replaceAll(result,"/","");
             //    replaceAll(result,"<>","");
             //    replaceAll(result," ","");
-   
+
             //    printf("Languages=%s\n" , result);
             //    langs = new char {result};
-      
+
             //}
-        }    
+        }
     }
 
     xmlfile.close();
