@@ -236,7 +236,7 @@ bool Reader::LoadBinary(char *fileName, string fileFormat, int _recordSize)
     FILE *input = fopen(fileName, "rb");
     if(!input)
     {
-        printf("ERROR: Can't open file '%s'.\n", fileName);
+        printf("\nERROR: Can't open file '%s'.\n", fileName);
         return false;
     }
 
@@ -245,7 +245,7 @@ bool Reader::LoadBinary(char *fileName, string fileFormat, int _recordSize)
 
     if (fileSize < 4)
     {
-        printf("ERROR: '%s': File size too small.\n", fileName);
+        printf("\nERROR: '%s': File size too small.\n", fileName);
         fclose(input);
         return false;
     }
@@ -277,7 +277,7 @@ bool Reader::LoadBinary(char *fileName, string fileFormat, int _recordSize)
         isWDB = true;
     else
     {
-        printf("ERROR: '%s': Unknown file type.\n", fileName);
+        printf("\nERROR: '%s': Unknown file type.\n", fileName);
         fclose(input);
         return false;
     }
@@ -288,7 +288,7 @@ bool Reader::LoadBinary(char *fileName, string fileFormat, int _recordSize)
         // 24 bytes del header + 8 bytes del primer record y su el tamaño del record
         if (fileSize < 32)
         {
-            printf("ERROR: '%s': WDB structure is damaged.\n", fileName);
+            printf("\nERROR: '%s': WDB structure is damaged.\n", fileName);
             fclose(input);
             return false;
         }
@@ -324,7 +324,7 @@ bool Reader::LoadBinary(char *fileName, string fileFormat, int _recordSize)
     {
         if (fileSize < 20)
         {
-            printf("ERROR: '%s': Unknown file format.\n", fileName);
+            printf("\nERROR: '%s': Unknown file format.\n", fileName);
             fclose(input);
             return false;
         }
@@ -336,7 +336,7 @@ bool Reader::LoadBinary(char *fileName, string fileFormat, int _recordSize)
 
         if (!totalRecords || !totalFields || !recordSize)
         {
-            printf("ERROR: '%s': No records/fields found in file.\n", fileName);
+            printf("\nERROR: '%s': No records/fields found in file.\n", fileName);
             fclose(input);
             return false;
         }
@@ -349,7 +349,7 @@ bool Reader::LoadBinary(char *fileName, string fileFormat, int _recordSize)
             (dataBytes < 0) || (stringBytes < 0) ||
             (dataBytes != (totalRecords * recordSize)) || (stringBytes != stringSize))
         {
-            printf("ERROR: '%s': Structure is damaged.\n", fileName);
+            printf("\nERROR: '%s': Structure is damaged.\n", fileName);
             fclose(input);
             return false;
         }
@@ -396,7 +396,7 @@ bool Reader::LoadADB_DBC_DB2_predicted(char *fileName, unsigned char *data)
     {
         if (recordSize % 4 != 0)
         {
-            printf("ERROR: '%s': Predicted: Not supported byte packed format.\n", fileName);
+            printf("\nERROR: '%s': Predicted: Not supported byte packed format.\n", fileName);
             return false;
         }
         totalFields = recordSize / 4;
@@ -542,7 +542,7 @@ bool Reader::LoadWDB(char *fileName, string format, unsigned char *data, int dat
 
             if (isFirstRecord && (!entry || !recordSize))
             {
-                printf("ERROR: '%s': No records found.\n", fileName);
+                printf("\nERROR: '%s': No records found.\n", fileName);
                 return false;
             }
             else if (!isFirstRecord && (!entry || !recordSize))
@@ -649,12 +649,12 @@ bool Reader::LoadWDB(char *fileName, string format, unsigned char *data, int dat
 
                     if ((recordSize > 0) && ((currentField + 1) >= totalFields))
                     {
-                        printf("ERROR: '%s': You must read '%i' bytes more per record.\n", fileName, recordSize);
+                        printf("\nERROR: '%s': You must read '%i' bytes more per record.\n", fileName, recordSize);
                         return false;
                     }
                     else if ((recordSize < 0) && ((currentField + 1) >= totalFields))
                     {
-                        printf("ERROR: '%s': Exceeded record size by '%i' bytes.\n", fileName, recordSize * -1);
+                        printf("\nERROR: '%s': Exceeded record size by '%i' bytes.\n", fileName, recordSize * -1);
                         return false;
                     }
                 } // for (unsigned int currentField = 0; currentField < totalFields; currentField++)
@@ -663,13 +663,13 @@ bool Reader::LoadWDB(char *fileName, string format, unsigned char *data, int dat
             } // if ((dataSize -= recordSize) >= 0)
             else
             {
-                printf("ERROR: '%s': Corrupted WDB file.\n", fileName);
+                printf("\nERROR: '%s': Corrupted WDB file.\n", fileName);
                 return false;
             }
         } // if ((dataSize -= 8) >= 0)
         else
         {
-            printf("ERROR: '%s': Unexpected End of file in WDB, expected file size '%li'.\n", fileName, orignaldataSize-dataSize);
+            printf("\nERROR: '%s': Unexpected End of file in WDB, expected file size '%li'.\n", fileName, orignaldataSize-dataSize);
             return false;
         }
     } // while (true)
@@ -687,7 +687,7 @@ void Reader::ExtractBinaryInfo(string fileName)
     FILE *output = fopen(outputFileName.c_str(), "w");
     if(!output)
     {
-        printf("ERROR: File cannot be created '%s'.\n", outputFileName.c_str());
+        printf("\nERROR: File cannot be created '%s'.\n", outputFileName.c_str());
         return;
     }
 
@@ -833,104 +833,106 @@ string CleanFilename(string Filename)
 std::vector<std::string> LookupDBCinXML(string Filename)
 {
     std::vector<std::string> outFieldname ;
+    //printf("\n 1");
     bool foundKey = false;
     int FIELDCOUNT=0;
     int CURRENTFIELD = 0;
 
     ifstream xmlfile2 ("ad.xml");
     string thisLine;
-    //std::vector<std::string> test(5);
-    //test[0] = "test0";
-    //test[1] = "test1";
-    //test[2] = "test2";
-    //test[3] = "test3";
-    //test[4] = "test4";
-
-
 
     if (xmlfile2.is_open())
     {
-        printf("..Searching for %s in config\n",Filename.c_str());
-
         while ( xmlfile2.good() )
         {
-          std::getline(xmlfile2,thisLine);
-    string startTag = (string)"<" + Filename + ">";
-    string endTag = (string)"</" + Filename + ">";
+            std::getline(xmlfile2,thisLine);
+            string startTag = (string)"<" + Filename + ">";
+            string endTag = (string)"</" + Filename + ">";
             if (thisLine.find(startTag.c_str()) != string::npos)
             {
             // Found the start Tag, need to build a list of the lines between this and the end tag
                 foundKey = true;
+                CURRENTFIELD = 0;
+                
             }
-            else if (thisLine.find(endTag) != string::npos)
+            else if (thisLine.find(endTag.c_str()) != string::npos)
             {
+                foundKey = false;
+                //printf(" 2");
                 break;
             // Found the end tag, need to bail out of this routine
             }
             else if (thisLine.find("<fieldcount>") != string::npos)
             {
-            // Read the number of fields
-                string result=thisLine;
-                replaceAll(result,"fieldcount","");
-                replaceAll(result,"/","");
-                replaceAll(result,"<>","");
-                replaceAll(result," ","");
+                if (foundKey == true)
+                {
+                    //printf(" 3");
 
-                printf("fieldcount=%s\n" , result);
-                int numb;
-                istringstream ( result ) >> numb;
-                FIELDCOUNT = numb;
-                std::vector<std::string> outFilename(numb);
+                    // Read the number of fields
+                    string result=thisLine;
+                    replaceAll(result,"fieldcount","");
+                    replaceAll(result,"/","");
+                    replaceAll(result,"<>","");
+                    replaceAll(result," ","");
+
+                    int numb;
+                    istringstream ( result ) >> numb;
+                    FIELDCOUNT = numb;
+                
+                    //printf("\nFieldCount=%u\n",FIELDCOUNT);
+                    outFieldname.resize(FIELDCOUNT);
+                    //printf(" 4");
+                }
             }
             else if (thisLine.find("<field") != string::npos)
             {
-                string result=thisLine;
-                replaceAll(result,"field type","");
-                replaceAll(result,"/","");
-                replaceAll(result,"<>","");
-                replaceAll(result," ","");
+                if (foundKey == true)
+                {
+//                    printf(" 5");
+                    string result=thisLine;
+                    replaceAll(result,"field type","");
+                    replaceAll(result,"include=\"y\"","");
+                    replaceAll(result,"include=\"n\"","");
+                    replaceAll(result,"/","");
+                    replaceAll(result,"<>","");
+                    replaceAll(result," ","");
+                    replaceAll(result,"<","");
+                    replaceAll(result,">","");
+                    replaceAll(result,"=\"float\"","");
+                    replaceAll(result,"=\"bigint\"","");
+                    replaceAll(result,"=\"text\"","");
+                    replaceAll(result,"name=","");
+                    replaceAll(result,"=","");
+            
+                    replaceAll(result,"\"","");
 
-                //printf("Min_Supported_Build=%s\n" , result);
-                string thisline;
-                istringstream ( result ) >> thisline;
-                outFieldname[CURRENTFIELD] = thisline;
+                    string thisline2;
+                    istringstream ( result ) >> thisline2;
 
-                CURRENTFIELD +=1;
-                //<Achievement>
-	               // <index>
-	               //   <primary>id</primary>
-	               // </index>
-                //    <include>Y</include>
-                //    <tablename>dbc_Achievement</tablename>
-                //    <fieldcount>14</fieldcount>
-                //    <field type="bigint" name="id" include="y" />
-                //    <field type="bigint" name="factionFlag" include="y" />
-                //    <field type="bigint" name="mapId" include="y" />
-                //    <field type="bigint" name="parentAchievement" include="y" />
-                //    <field type="text" name="name" include="y" />
-                //    <field type="text" name="description" include="y" />
-                //    <field type="bigint" name="categoryId" include="y" />
-                //    <field type="bigint" name="rewardPoints" include="y" />
-                //    <field type="bigint" name="OrderInCategory" include="y" />
-                //    <field type="bigint" name="flags" include="y" />
-                //    <field type="bigint" name="iconId" include="y" />
-                //    <field type="text" name="reward" include="y" />
-                //    <field type="bigint" name="reqCriteriasCount" include="y" />
-                //    <field type="bigint" name="refAchievement" include="y" />
-                //</Achievement>
+                    //printf("\nSize=%u",outFieldname.size());
+                    //printf(" Current=%u\n",CURRENTFIELD);
 
+                    outFieldname[CURRENTFIELD] = thisline2;
 
+                    CURRENTFIELD +=1;
+                    //printf(" 6");
+
+                }
             }
         }
-
-        xmlfile2.close();
     }
-    else
+    try
     {
-        printf(" Failed to open XML");
-        std::vector<std::string> outFilename(1);
-        outFilename[0]="";
+    xmlfile2.close();
     }
+    catch (exception e)
+    {
+    }
+  //  printf(" 7");
+    //for (int thisfield = 0; thisfield < outFieldname.size(); ++thisfield)
+    //{
+    //    printf("\nFieldName: %s",outFieldname[thisfield].c_str());
+    //}
     return outFieldname;
 }
 
@@ -941,43 +943,41 @@ void Reader::WriteSqlStructure(ofstream& fileRef,string& filename)
     fileRef << "CREATE TABLE `dbc_"+ filename +"` (" << endl;
 
     // Generate the SQL for the Fields
-    int maxColumns = totalFields; //data.Columns.Count
-    printf (".... About to initialise thisColumnName: ");
+    int maxColumns = totalFields;
     std::vector<std::string>thisColumnName;
     //TODO: Check the totalFields matches the number listed in the config file for this file
     //      If it does, replace the Colxx column names with fieldnames from the config file
+    int thisMaxColumns =0;
+        try
+        {
+            thisMaxColumns = LookupDBCinXML(filename).size();
+            if (thisMaxColumns>0)
+            {
+                thisColumnName.resize(thisMaxColumns);
+                totalFields = thisMaxColumns;
+                thisColumnName = LookupDBCinXML(filename);
+            }
+            else
+            {
+                thisColumnName.resize(0);
+            }
+        }
+        catch (exception b)
+        {
+            thisMaxColumns = 0;
+            thisColumnName.resize(0);
+        }
 
+    //printf ("\nStarting Loop");
     for (int currentField = 0; currentField < maxColumns; ++currentField)
     {
-        //TODO: Retrieve column names from ad.xml
-        printf (".... About to Call LookupDBCinXML: %s",filename);
-
-        thisColumnName = LookupDBCinXML(filename);
-        printf (".... Returned from LookupDBCinXML: ");
-        //1  <Files>
-        //2   <Achievement>
-        //3       <include>Y</include>
-        //4       <tablename>dbc_Achievement</tablename>
-        //5       <fieldcount>15</fieldcount>
-        //6       <field type="bigint" name="id" include="y" />
-        //7   </Achievement>
-
-        // STAGE1 - Find a match for <filename> in the xml  //
-        // STAGE2 - Find a match for </filename> in the xml //
-
-        // STAGE3 - Check that fieldcount (from 5) matches maxColumns
-
-        // STAGE4 - Read the line (6) into an array, name + include are the important fields
-
-        // STAGE5 - Skip any columns where include data is 'n'
-
         // STAGE6 - Replace Col below with the data contained in name
 
-   /*     if (currentField>0)
+        if (thisColumnName.size()>0)
         {
             try
             {
-                if (thisColumnName[currentField] != "")
+                if (thisColumnName[currentField].length() > 0)
                 {
                     fileRef << "\t`";
                     fileRef << thisColumnName[currentField];
@@ -991,36 +991,46 @@ void Reader::WriteSqlStructure(ofstream& fileRef,string& filename)
                 }
             }
             catch (exception a)
-            {*/
+            {
                     fileRef << "\t`Col";
                     fileRef << currentField;
                     fileRef << "`" ;
-          /*  }
-        */
-
+            }
+        }
+        else // thisColumnName.size() = 0
+        {
+                    fileRef << "\t`Col";
+                    fileRef << currentField;
+                    fileRef << "`" ;
+        }
             //TODO: Override these settings with values from the Config File
             if (isStringField[currentField])
+            {
                 fileRef << " TEXT NOT NULL";
+            }
             else if (isFloatField[currentField])
+            {
                 fileRef << " FLOAT NOT NULL DEFAULT '0'";
-
+            }
             else if (isByteField[currentField])
+            {
                 fileRef << " TINYINT UNSIGNED NOT NULL DEFAULT '0'";
-
+            }
             else if (isIntField[currentField] || isBoolField[currentField])
-                fileRef << " BIGINT NOT NULL DEFAULT '0'";
+            {
+               fileRef << " BIGINT NOT NULL DEFAULT '0'";
+            }
 
             if (currentField+1 < totalFields)
                 fileRef << "," << endl;
-        }
-    //}
+    }
     //TODO:     Build a list of the primary keys and add this to the SQL definition
     //{
     //    sqlWriter.WriteLine("\tPRIMARY KEY (`{0}`)", index.ColumnName);
     //}
 
     // Close off the final part of the header section
-    fileRef << ")" << endl;
+   fileRef << ")" << endl;
     fileRef << " ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Export of " + filename + "';" << endl;
     fileRef << " SET NAMES UTF8;" << endl;
 }
@@ -1411,7 +1421,7 @@ uint32 ReadBuild(int locale)
 
     if (!OpenNewestFile(filename.c_str(), &fileHandle))
     {
-        printf("Fatal error: Not found %s file!\n", filename.c_str());
+        printf("\nFatal error: Not found %s file!\n", filename.c_str());
         exit(1);
     }
 
@@ -1422,7 +1432,7 @@ uint32 ReadBuild(int locale)
 
     if (!SFileReadFile(fileHandle, &text[0], data_size, NULL, NULL))
     {
-        printf("Fatal error: Can't read %s file!\n", filename.c_str());
+        printf("\nFatal error: Can't read %s file!\n", filename.c_str());
         exit(1);
     }
 
@@ -1433,7 +1443,7 @@ uint32 ReadBuild(int locale)
     size_t pos2 = text.find("\"",pos1);
     if (pos == text.npos || pos2 == text.npos || pos1 >= pos2)
     {
-        printf("Fatal error: Invalid  %s file format!\n", filename.c_str());
+        printf("\nFatal error: Invalid  %s file format!\n", filename.c_str());
         exit(1);
     }
 
@@ -1442,13 +1452,13 @@ uint32 ReadBuild(int locale)
     int build = atoi(build_str.c_str());
     if (build <= 0)
     {
-        printf("Fatal error: Invalid  %s file format!\n", filename.c_str());
+        printf("\nFatal error: Invalid  %s file format!\n", filename.c_str());
         exit(1);
     }
 
     if (build < MIN_SUPPORTED_BUILD)
     {
-        printf("Fatal error: tool can correctly extract data only for build %u or later (detected: %u)!\n", MIN_SUPPORTED_BUILD, build);
+        printf("\nFatal error: tool can correctly extract data only for build %u or later (detected: %u)!\n", MIN_SUPPORTED_BUILD, build);
         exit(1);
     }
 
@@ -1468,7 +1478,7 @@ uint32 ReadMapDBC(int const locale)
     HANDLE dbcFile;
     if (!SFileOpenFileEx(localeFile, "DBFilesClient\\Map.dbc", SFILE_OPEN_PATCHED_FILE, &dbcFile))
     {
-        printf("Fatal error: Cannot find Map.dbc in archive!\n");
+        printf("\nFatal error: Cannot find Map.dbc in archive!\n");
         exit(1);
     }
 
@@ -1476,7 +1486,7 @@ uint32 ReadMapDBC(int const locale)
 
     if (!dbc.open())
     {
-        printf("Fatal error: Invalid Map.dbc file format!\n");
+        printf("\nFatal error: Invalid Map.dbc file format!\n");
         exit(1);
     }
 
@@ -1504,7 +1514,7 @@ void ReadAreaTableDBC(int const locale)
     HANDLE dbcFile;
     if (!SFileOpenFileEx(localeFile, "DBFilesClient\\AreaTable.dbc", SFILE_OPEN_PATCHED_FILE, &dbcFile))
     {
-        printf("Fatal error: Cannot find AreaTable.dbc in archive!\n");
+        printf("\nFatal error: Cannot find AreaTable.dbc in archive!\n");
         exit(1);
     }
 
@@ -1512,7 +1522,7 @@ void ReadAreaTableDBC(int const locale)
 
     if (!dbc.open())
     {
-        printf("Fatal error: Invalid AreaTable.dbc file format!\n");
+        printf("\nFatal error: Invalid AreaTable.dbc file format!\n");
         exit(1);
     }
 
@@ -1554,7 +1564,7 @@ void ReadLiquidTypeTableDBC(int const locale)
     {
         //if (!SFileOpenFileEx(localeFile2, "DBFilesClient\\LiquidType.dbc", SFILE_OPEN_PATCHED_FILE, &dbcFile))
         //{
-            printf("Fatal error: Cannot find LiquidType.dbc in archive!\n");
+            printf("\nFatal error: Cannot find LiquidType.dbc in archive!\n");
             exit(1);
         //}
     }
@@ -1562,7 +1572,7 @@ void ReadLiquidTypeTableDBC(int const locale)
     DBCFile dbc(dbcFile);
     if (!dbc.open())
     {
-        printf("Fatal error: Invalid LiquidType.dbc file format!\n");
+        printf("\nFatal error: Invalid LiquidType.dbc file format!\n");
         exit(1);
     }
 
@@ -2288,7 +2298,7 @@ void ExtractDBCFiles(int locale, bool basicLocale, uint32& ClientVersion)
             if( remove( "ad_generated.xml" ) != 0 )
             {
                 //Failed to delete the file, prevent any more operations on the file
-                perror( "Error deleting file: ad_generated.xml");
+                perror( "\nError deleting file: ad_generated.xml");
                 xmlError=1;
             }
         }
@@ -2334,7 +2344,7 @@ void ExtractDBCFiles(int locale, bool basicLocale, uint32& ClientVersion)
                 if( remove( filename.c_str() ) != 0 )
                 {
                     //Failed to delete the file, prevent any more operations on the file
-                    printf( "Error deleting file: %s",filename);
+                    printf( "\nError deleting file: %s",filename);
                 }
         }
             ++count;
@@ -2428,7 +2438,7 @@ void LoadLocaleMPQFiles(int const locale)
     {
         if (!OpenArchive(filename, &localeMpqHandle))
         {
-            printf("Error open archive: %s\n\n", filename);
+            printf("\nError open archive: %s\n\n", filename);
             return;
         }
     }
@@ -2438,7 +2448,7 @@ void LoadLocaleMPQFiles(int const locale)
     {
         if (!OpenArchive(filename, &localeMpqHandle))
         {
-            printf("Error open archive: %s\n\n", filename);
+            printf("\nError open archive: %s\n\n", filename);
             return;
         }
     }
@@ -2459,7 +2469,7 @@ void LoadLocaleMPQFiles(int const locale)
 
         //if (!OpenArchive(filename))
         if (!SFileOpenPatchArchive(localeMpqHandle, filename, itr->second.second ? itr->second.second : "", 0))
-            printf("Error open patch archive: %s\n\n", filename);
+            printf("\nError open patch archive: %s\n\n", filename);
     }
 }
 
@@ -2476,7 +2486,7 @@ void LoadBaseMPQFiles()
 
         if (!OpenArchive(filename, &worldMpqHandle))
         {
-            printf("Error open archive: %s\n\n", filename);
+            printf("\nError open archive: %s\n\n", filename);
             return;
         }
     }
@@ -2488,7 +2498,7 @@ void LoadBaseMPQFiles()
 
         if (!OpenArchive(filename, &worldMpqHandle))
         {
-            printf("Error open archive: %s\n\n", filename);
+            printf("\nError open archive: %s\n\n", filename);
             return;
         }
     }
@@ -2500,7 +2510,7 @@ void LoadBaseMPQFiles()
         printf("%s\n", filename);
         if (!OpenArchive(filename, &worldMpqHandle))
         {
-            printf("Error open archive: %s\n\n", filename);
+            printf("\nError open archive: %s\n\n", filename);
             return;
         }
     }
@@ -2520,7 +2530,7 @@ void LoadBaseMPQFiles()
 
         if (!OpenArchive(filename, &worldMpqHandle))
         {
-            printf("Error open patch archive: %s\n\n", filename);
+            printf("\nError open patch archive: %s\n\n", filename);
             return;
         }
     }
@@ -2599,15 +2609,15 @@ int main(int argc, char * arg[])
                 istringstream ( result ) >> numb;
                 WORLD_COUNT = numb;
             }
-            //else if (thisLine.find("<Languages>") != string::npos)
+            //else if (thisLine.find("<ClientLanguages>") != string::npos)
             //{
             //    string result=thisLine;
-            //    replaceAll(result,"Languages","");
+            //    replaceAll(result,"ClientLanguages","");
             //    replaceAll(result,"/","");
             //    replaceAll(result,"<>","");
             //    replaceAll(result," ","");
 
-            //    printf("Languages=%s\n" , result);
+            //    printf("ClientLanguages=%s\n" , result);
             //    langs = new char {result};
 
             //}

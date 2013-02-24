@@ -2,7 +2,7 @@
 <root>
     <Config>
         <Lang_Count>12</Lang_Count>
-        <Languages>"enGB", "enUS", "deDE", "esES", "frFR", "koKR", "zhCN", "zhTW", "enCN", "enTW", "esMX", "ruRU"</Languages>
+        <ClientLanguages>"enGB", "enUS", "deDE", "esES", "frFR", "koKR", "zhCN", "zhTW", "enCN", "enTW", "esMX", "ruRU"</ClientLanguages>
         <Min_Supported_Build>16516</Min_Supported_Build>
         <Expansion_Count>4</Expansion_Count>
         <World_Count>2</World_Count>
